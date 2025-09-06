@@ -33,7 +33,7 @@ def build_urls(job_title: str, location: str) -> dict:
     # "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
     # "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     # "TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-          "Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+        "Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     # "Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
           "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
     # "Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
@@ -210,9 +210,26 @@ if submitted:
     for tab, (site, payload) in zip(tabs, data.items()):
         with tab:
             st.markdown(
-                f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
+                f"""
+                <a href="{payload["url"]}" target="_blank" style="
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background-color: {accent};
+                    color: white;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    text-align: center;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    transition: all 0.2s ease-in-out;
+                    margin-bottom: 20px;
+                    font-size: 1.1em;
+                " onmouseover="this.style.backgroundColor='darken({accent}, 10%)'; this.style.boxShadow='0 6px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.backgroundColor='{accent}'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'">
+                    🔗 View on {site}
+                </a>
+                """,
                 unsafe_allow_html=True
-)
+            )
 
             err = payload.get("error")
             if err:
