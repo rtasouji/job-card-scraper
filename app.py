@@ -5,6 +5,7 @@ import requests
 import streamlit as st
 from urllib.parse import quote_plus
 import time
+import random
 
 # Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
@@ -177,9 +178,18 @@ def run_all(job_title: str, location: str) -> dict:
             jobs = scrape_jobs(url, site)
 
             # Check page text for "no results" messages (optional: use requests.get() to fetch page content)
-            r = requests.get(url)
-            if "Sorry, no results were found" in r.text:
-                jobs = []  # override with empty if no results
+            if not isinstance(jobs, list):
+                jobs = []
+
+            # do a quick site page text check to detect "no results" messages
+            try:
+                r = requests.get(url, timeout=15)
+                page_text = (r.text or "").lower()
+                if any(phrase in page_text for phrase in no_results_phrases):
+                    jobs = []
+            except Exception:
+                # network issues when checking the page should not break flow
+                pass
 
             out[site] = {"url": url, "jobs": jobs}
         except Exception as e:
@@ -197,8 +207,8 @@ with st.form("search"):
     submitted = st.form_submit_button("Search")
 
 if submitted:
-    with st.spinner("Fetching the hottest jobs for you... 🔍"):
-        data = run_all(job_title, location)
+    with st.spinner(random.choice(loading_messages)):
+    data = run_all(job_title, location)
 
     # Summary
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
@@ -236,7 +246,22 @@ if submitted:
                 "CVLibrary": "#F43F5E",
                 "Breakroom": "#F53F5E"
             }
+            # rotating, fun but professional loading messages
+            loading_messages = [
+                "Fetching the hottest jobs for you... 🔍",
+                "Looking for the dream job... ✨",
+                "Compiling the latest opportunities... 💼",
+                "Searching high and low for jobs... 🕵️‍♂️"
+            ]
 
+            # phrases to detect no-results on site pages
+            no_results_phrases = [
+                "sorry, no results were found",
+                "no jobs match your search",
+                "0 results found",
+                "no listings found",
+                "no vacancies found"
+            ]
             # Job cards with site-based color accents
             for j in jobs:
                 title = j.get("job_title") or "Unknown title"
