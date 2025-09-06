@@ -18,12 +18,14 @@ st.caption("Enter a job title and a location. The app builds 7 job board URLs, c
 # URL Builders
 # ----------------------------
 def hyphenate(s: str) -> str:
-    return re.sub(r"\s+", "-", s.strip())
+    return re.sub(r"\s+", "-", s.strip().lower())
 
 def build_urls(job_title: str, location: str) -> dict:
-    q_job = quote_plus(job_title.strip())
-    q_loc = quote_plus(location.strip())
+    # Lowercase and URL-encode for query parameters
+    q_job = quote_plus(job_title.strip().lower())
+    q_loc = quote_plus(location.strip().lower())
 
+    # Hyphenated for path segments
     job_dash = hyphenate(job_title)
     loc_dash = hyphenate(location)
 
@@ -31,7 +33,10 @@ def build_urls(job_title: str, location: str) -> dict:
         "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={q_job}&w={q_loc}",
         "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
         "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-
+        "Jooble":     f"https://uk.jooble.org/SearchResult?rgns={q_loc}&ukw={q_job}",
+        "Indeed":     f"https://uk.indeed.com/jobs?q={q_job}&l={q_loc}",
+        "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
+        "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
     }
 
 # ----------------------------
