@@ -5,6 +5,7 @@ import requests
 import streamlit as st
 from urllib.parse import quote_plus
 import time
+import concurrent.futures
 
 # Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
@@ -30,8 +31,8 @@ def build_urls(job_title: str, location: str) -> dict:
     loc_dash = hyphenate(location)
 
     return {
-     "Adzuna":   f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    # "CWJobs":   f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    # "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
+    # "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     # "TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
           "Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     # "Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
@@ -168,8 +169,6 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
 
-import concurrent.futures
-
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
     urls = build_urls(job_title, location)
@@ -230,12 +229,44 @@ if submitted:
     # Tabs
     tabs = st.tabs(list(data.keys()))
 
+    # Define site colors
+    SITE_COLORS = {
+        "Adzuna": "#FF6B6B",
+        "CWJobs": "#4F46E5",
+        "TotalJobs": "#10B981",
+        "Hays": "#F59E0B",
+        "Indeed": "#2563EB",
+        "Reed": "#8B5CF6",
+        "CVLibrary": "#F43F5E",
+        "Breakroom": "#F53F5E"
+    }
+
     for tab, (site, payload) in zip(tabs, data.items()):
         with tab:
+            # Use the site's color for the CTA button
+            accent = SITE_COLORS.get(site, "#1a73e8")
+            
+            # Make the link a prominent button-like CTA
             st.markdown(
-                f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
+                f"""
+                <a href="{payload["url"]}" target="_blank" style="
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: {accent};
+                    color: white;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    text-align: center;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    transition: all 0.2s ease-in-out;
+                    margin-bottom: 20px;
+                " onmouseover="this.style.backgroundColor='darken({accent}, 10%)'; this.style.boxShadow='0 6px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.backgroundColor='{accent}'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'">
+                    🔗 View on {site}
+                </a>
+                """,
                 unsafe_allow_html=True
-)
+            )
 
             err = payload.get("error")
             if err:
@@ -247,18 +278,6 @@ if submitted:
                 st.info("😕 No job results found for your search.")
                 continue
 
-            # Define site colors
-            SITE_COLORS = {
-                "Adzuna": "#FF6B6B",
-                "CWJobs": "#4F46E5",
-                "TotalJobs": "#10B981",
-                "Hays": "#F59E0B",
-                "Indeed": "#2563EB",
-                "Reed": "#8B5CF6",
-                "CVLibrary": "#F43F5E",
-                "Breakroom": "#F53F5E"
-            }
-            
             # Create two columns for the job cards
             col1, col2 = st.columns(2)
 
