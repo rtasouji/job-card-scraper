@@ -12,11 +12,15 @@ API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
 st.title("🌐 Multi Job Board Aggregator")
+
 st.caption("Enter a job title and a location. The app fetches top job listings from multiple job boards and displays them neatly for you.")
 
 
 # ----------------------------
 # URL Builders
+# ----------------------------
+# ----------------------------
+# URL Builders (Hays + Breakroom included)
 # ----------------------------
 def hyphenate(s: str) -> str:
     return re.sub(r"\s+", "-", s.strip().lower())
@@ -24,19 +28,18 @@ def hyphenate(s: str) -> str:
 def build_urls(job_title: str, location: str) -> dict:
     job_dash = hyphenate(job_title)
     loc_dash = hyphenate(location)
-    q_job = quote_plus(job_title.strip())
-    q_loc = quote_plus(location.strip())
 
     return {
-        "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={q_job}&w={q_loc}",
-        "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-        "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-        "Indeed":     f"https://uk.indeed.com/jobs?q={q_job}&l={q_loc}",
-        "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
-        "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-        "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-        "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+    #    "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
+    #    "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    #    "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+         "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+    #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
+    #    "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
+    #    "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+     #   "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
+
 
 
 # ----------------------------
@@ -96,15 +99,18 @@ Return JSON array of objects: job_title, company_name, location
 Ignore unrelated content
 """,
     "Hays": """
-Extract job titles, company names, and job locations from Hays search results page.
+Extract job titles, company names, and job locations from this Hays search results page.
 
-- Job title: <a> or heading element with class containing 'job-title'
-- Company: element that contains recruiter/employer name
-- Location: element containing location info
+Each job listing is contained in an element with class containing 'job-card' or similar.
+Within each job card:
+- Extract the job title from the <a> tag or heading element with class containing 'job-title'.
+- Extract the company name from the element that contains the recruiter/employer name (often in a <span> or <p> tag inside the job card).
+- Extract the location from the element containing the location info.
 
-Return JSON array of objects: job_title, company_name, location
-Ignore ads, footers, similar jobs, or content outside job cards
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
+Ignore ads, footers, similar jobs, or content outside the job cards.
 """,
+
     "CVLibrary": """
 Extract job titles, company names, and job locations from CVLibrary search results.
 
@@ -116,20 +122,22 @@ Return JSON array of objects: job_title, company_name, location
 Ignore unrelated content
 """,
     "Breakroom":"""
-Extract job titles, company names, and job locations from Breakroom search results page.
+Extract job titles, company names, and job locations from this Breakroom search results page.
 
-- Job title: <h2> or <a> with class containing 'job-title'
-- Company: <p>, <span>, or <div> with class containing 'company'
-- Location: element with class containing 'location'
+Each job listing is contained in a job card element (for example, class containing 'job-card' or similar).  
+Within each job card:
+- Extract the job title from the main title element (e.g., <h2> or <a> with class containing 'job-title'). Keep the full text exactly as it appears.  
+- Extract the company name from the company element (e.g., <p>, <span>, or <div> with class containing 'company' or similar).  
+- Extract the job location from the location element (e.g., class containing 'location' or similar).
 
-Return JSON array of objects: job_title, company_name, location
-Ignore ads, footers, similar jobs, or any content outside the job card
-"""
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.  
+Ignore ads, footers, similar jobs, or any content outside the job card container.
+
+    """,
 }
 
 def get_prompt(site_name: str) -> str:
     return SITE_PROMPTS.get(site_name)
-
 
 # ----------------------------
 # Firecrawl Scraping with retry
@@ -160,7 +168,6 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
 
-
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
     urls = build_urls(job_title, location)
@@ -169,10 +176,10 @@ def run_all(job_title: str, location: str) -> dict:
         try:
             jobs = scrape_jobs(url, site)
 
-            # Optional: check page for "no results" message
+            # Check page text for "no results" messages (optional: use requests.get() to fetch page content)
             r = requests.get(url)
             if "Sorry, no results were found" in r.text:
-                jobs = []
+                jobs = []  # override with empty if no results
 
             out[site] = {"url": url, "jobs": jobs}
         except Exception as e:
@@ -190,7 +197,7 @@ with st.form("search"):
     submitted = st.form_submit_button("Search")
 
 if submitted:
-    with st.spinner("🚀 Searching the job universe for the best matches..."):
+    with st.spinner("Fetching the hottest jobs for you... 🔍"):
         data = run_all(job_title, location)
 
     # Summary
@@ -200,24 +207,12 @@ if submitted:
     # Tabs
     tabs = st.tabs(list(data.keys()))
 
-    # Site colors
-    SITE_COLORS = {
-        "Adzuna": "#FF6B6B",
-        "CWJobs": "#4F46E5",
-        "TotalJobs": "#10B981",
-        "Hays": "#F59E0B",
-        "Indeed": "#2563EB",
-        "Reed": "#8B5CF6",
-        "CVLibrary": "#F43F5E",
-        "Breakroom": "#F53F5E"
-    }
-
     for tab, (site, payload) in zip(tabs, data.items()):
         with tab:
             st.markdown(
                 f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
                 unsafe_allow_html=True
-            )
+)
 
             err = payload.get("error")
             if err:
@@ -229,25 +224,37 @@ if submitted:
                 st.info("😕 No job results found for your search.")
                 continue
 
-            # Display jobs in two columns
-            cols = st.columns(2)
-            for i, j in enumerate(jobs):
+
+            # Define site colors
+            SITE_COLORS = {
+                "Adzuna": "#FF6B6B",
+                "CWJobs": "#4F46E5",
+                "TotalJobs": "#10B981",
+                "Hays": "#F59E0B",
+                "Indeed": "#2563EB",
+                "Reed": "#8B5CF6",
+                "CVLibrary": "#F43F5E",
+                "Breakroom": "#F53F5E"
+            }
+
+            # Job cards with site-based color accents
+            for j in jobs:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
+
                 accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
 
-                col = cols[i % 2]
-                col.markdown(f"""
+                st.markdown(f"""
                 <div style="
-                    padding:18px; 
-                    margin:8px 0; 
-                    border-radius:12px; 
+                    padding:20px; 
+                    margin:12px 0; 
+                    border-radius:15px; 
                     border:1px solid {accent}; 
                     background: linear-gradient(90deg, #fdfdfd, #f7f9fc);
-                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
                     transition: transform 0.2s;
-                ">
+                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                     <h4 style="margin:0; color:{accent}; font-weight:700;">{title}</h4>
                     <p style="margin:4px 0 0; color:#4b5563;">
                         <span style="margin-right:6px;">🏢</span> Company: {company}
@@ -258,5 +265,7 @@ if submitted:
                 </div>
                 """, unsafe_allow_html=True)
 
+
+
     st.divider()
-    st.caption("✨ Job listings aggregated from multiple top job boards")
+    st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
