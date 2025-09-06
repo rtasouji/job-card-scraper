@@ -41,25 +41,31 @@ def build_urls(job_title: str, location: str) -> dict:
 # Per-site Prompts
 # ----------------------------
 DEFAULT_PROMPT = """
-Extract job titles and company names from this search results page.
-Job titles are typically in elements with class 'jobtitle' or within <h2> tags with class 'title' or <a> tags with 'data-tn-element=jobTitle'.
-Company names are typically in elements with class 'company' or 'companyName'.
-Focus on job cards (e.g., elements with class 'job_seen_beacon' or 'result').
-Ignore ads, footers, navigation, or unrelated content.
-Return a JSON array of objects with fields: job_title, company_name.
+Extract job titles, company names, and job locations from this job listings page.
+
+Each job listing is contained within a job card element (e.g., class contains 'job_seen_beacon', 'result', 'job-card_container', or similar for the site).  
+Within each job card:
+- Extract the job title from the main job title element (e.g., <a> or <h2> with class or attribute like data-element="job_title"). Keep the full text exactly as it appears.  
+- Extract the company name from the company element (e.g., class contains 'company', 'companyName', or <a> with data-element="recruiter").  
+- Extract the location from the location element (e.g., class contains 'location', 'job-card_jobMetadata__item___QNud' with data-qa="job-card-location", or similar).  
+
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.  
+Ignore ads, footers, similar jobs, or any content outside the job card container.
+
 """
 
 SITE_PROMPTS = {
     "Reed": """
-Extract job titles and company names from this Reed search results page.
+Extract job titles, company names, and job locations from this Reed search results page.
 
 Each job listing is contained in an <article> element with class containing 'job-card_jobCard'.
 Within each job card:
 - Only use the <header> section for extraction.
 - Extract the job title from the <a> tag with attribute data-element="job_title" inside the header. Keep the full text exactly as it appears.
-- Extract the company name from the <a> tag with attribute data-element="recruiter" inside the header. Do not extract anything from the job description or other sections.
+- Extract the company name from the <a> tag with attribute data-element="recruiter" inside the header.
+- Extract the job location from the element inside the header with data-qa="job-card-location" or similar location element.
 
-Return a JSON array of objects, one per job card, with fields: job_title, company_name.
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
 Ignore any other links, badges, similar jobs, or metadata outside the header.
 
 """
