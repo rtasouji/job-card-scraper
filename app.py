@@ -209,14 +209,14 @@ if submitted:
 
     # Define site colors
     SITE_COLORS = {
-        "Adzuna": "#FF6B6B",
-        "CWJobs": "#4F46E5",
-        "TotalJobs": "#10B981",
-        "Hays": "#F59E0B",
-        "Indeed": "#2563EB",
-        "Reed": "#8B5CF6",
-        "CVLibrary": "#F43F5E",
-        "Breakroom": "#F53F5E"
+        "Adzuna": "#279B37",
+        "CWJobs": "#D17119",
+        "TotalJobs": "#005F75",
+        "Hays": "#0F42BE",
+        "Indeed": "#003A9B",
+        "Reed": "#FF00CD",
+        "CVLibrary": "#014694",
+        "Breakroom": "#F1666A"
     }
 
     for tab, (site, payload) in zip(tabs, data.items()):
