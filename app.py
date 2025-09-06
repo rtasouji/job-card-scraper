@@ -168,22 +168,45 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
 
+import concurrent.futures
+
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
     urls = build_urls(job_title, location)
     out = {}
-    for site, url in urls.items():
+    
+    # Create a wrapper function for the executor
+    def scrape_single_site(site_name):
+        url = urls[site_name]
         try:
-            jobs = scrape_jobs(url, site)
-
-            # Check page text for "no results" messages (optional: use requests.get() to fetch page content)
+            jobs = scrape_jobs(url, site_name)
+            
+            # Check for "no results" message
             r = requests.get(url)
             if "Sorry, no results were found" in r.text:
-                jobs = []  # override with empty if no results
+                jobs = []
 
-            out[site] = {"url": url, "jobs": jobs}
+            return site_name, {"url": url, "jobs": jobs}
         except Exception as e:
-            out[site] = {"url": url, "jobs": [], "error": str(e)}
+            return site_name, {"url": url, "jobs": [], "error": str(e)}
+
+    # Get a list of sites to scrape
+    sites_to_scrape = list(urls.keys())
+    
+    # Process sites in batches of 2
+    for i in range(0, len(sites_to_scrape), 2):
+        batch = sites_to_scrape[i:i+2]
+        
+        # Use a ThreadPoolExecutor with a max of 2 workers to respect the API limit
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            # Submit tasks for the current batch and collect results
+            future_to_site = {executor.submit(scrape_single_site, site): site for site in batch}
+            
+            # Wait for all tasks in the batch to complete
+            for future in concurrent.futures.as_completed(future_to_site):
+                site_name, payload = future.result()
+                out[site_name] = payload
+            
     return out
 
 
