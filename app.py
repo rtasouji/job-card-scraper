@@ -19,25 +19,27 @@ st.caption("Enter a job title and a location. The app fetches top job listings f
 # ----------------------------
 # URL Builders
 # ----------------------------
+# ----------------------------
+# URL Builders (Hays + Breakroom included)
+# ----------------------------
 def hyphenate(s: str) -> str:
     return re.sub(r"\s+", "-", s.strip().lower())
 
 def build_urls(job_title: str, location: str) -> dict:
-    q_job = quote_plus(job_title.strip().lower())
-    q_loc = quote_plus(location.strip().lower())
     job_dash = hyphenate(job_title)
     loc_dash = hyphenate(location)
 
     return {
-    #    "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={q_job}&w={q_loc}",
+    #    "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
     #    "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #    "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #    "Indeed":     f"https://uk.indeed.com/jobs?q={q_job}&l={q_loc}",
+    #    "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
     #    "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-         "Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk"
-
+    #    "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+        "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
+
 
 
 # ----------------------------
@@ -118,7 +120,20 @@ Extract job titles, company names, and job locations from CVLibrary search resul
 
 Return JSON array of objects: job_title, company_name, location
 Ignore unrelated content
-"""
+""",
+    "Breakroom":"""
+Extract job titles, company names, and job locations from this Breakroom search results page.
+
+Each job listing is contained in a job card element (for example, class containing 'job-card' or similar).  
+Within each job card:
+- Extract the job title from the main title element (e.g., <h2> or <a> with class containing 'job-title'). Keep the full text exactly as it appears.  
+- Extract the company name from the company element (e.g., <p>, <span>, or <div> with class containing 'company' or similar).  
+- Extract the job location from the location element (e.g., class containing 'location' or similar).
+
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.  
+Ignore ads, footers, similar jobs, or any content outside the job card container.
+
+    """,
 }
 
 def get_prompt(site_name: str) -> str:
