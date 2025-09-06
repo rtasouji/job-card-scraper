@@ -53,13 +53,13 @@ SITE_PROMPTS = {
     "Reed": """
 Extract job titles and company names from this Reed search results page.
 
-Each job listing is contained within a <div> element whose class contains 'job-card_container'.
-Within each job card container:
-- Extract only the first <a> tag with attribute data-element="job_title" as the job title.
-- Extract only the first <a> tag with attribute data-element="recruiter" as the company name.
+Each job listing is contained in an <article> element with class containing 'job-card_jobCard'.
+Within each job card:
+- Extract the job title from the <a> tag with attribute data-element="job_title". Keep the full text exactly as it appears.
+- Extract the company name from the <a> tag with attribute data-element="recruiter". Do not infer from the job title.
 
 Return a JSON array of objects, one per job card, with fields: job_title, company_name.
-Ignore any other links, similar jobs, badges, or hidden elements outside the main container.
+Ignore any other links, badges, similar jobs, or metadata outside the main job card.
 
 """
 }
