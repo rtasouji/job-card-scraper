@@ -95,13 +95,16 @@ Return JSON array of objects: job_title, company_name, location
 Ignore unrelated content
 """,
     "Jooble": """
-Extract job titles, company names, and job locations from Jooble search results.
+Extract job titles, company names, and job locations from this Jooble search results page.
 
-- Job title: <a> with class containing 'position'
-- Company: element with class 'company'
-- Location: element with class 'location'
+Each job listing is contained within a job card container (e.g., a <div> with class containing 'job-listing' or similar).  
+Within each job card:
+- Extract the job title from the <a> tag with class 'job_card_link'. Keep the full text exactly as it appears.
+- Extract the company name from the <p> tag with attribute data-test-name="_companyName".
+- Extract the location from the element that contains the location text (class 'location' or similar within the job card).
 
-Return JSON array of objects: job_title, company_name, location
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
+Ignore ads, similar jobs, badges, or any content outside the job card container.
 """,
     "CVLibrary": """
 Extract job titles, company names, and job locations from CVLibrary search results.
