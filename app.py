@@ -4,13 +4,14 @@ import json
 import requests
 import streamlit as st
 from urllib.parse import quote_plus
+import time
 
-# Firecrawl API key (from Streamlit Secrets)
+# Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
 API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Multi Job Board Scraper", layout="wide")
-st.title("🌐 Multi Job Board Scraper")
+st.title("🌐 Multi Job Board Scraper (Demo)")
 
 st.caption("Enter a job title and a location. The app builds 7 job board URLs, calls Firecrawl, and shows the top 10 results per site.")
 
@@ -21,11 +22,8 @@ def hyphenate(s: str) -> str:
     return re.sub(r"\s+", "-", s.strip().lower())
 
 def build_urls(job_title: str, location: str) -> dict:
-    # Lowercase and URL-encode for query parameters
     q_job = quote_plus(job_title.strip().lower())
     q_loc = quote_plus(location.strip().lower())
-
-    # Hyphenated for path segments
     job_dash = hyphenate(job_title)
     loc_dash = hyphenate(location)
 
@@ -40,10 +38,10 @@ def build_urls(job_title: str, location: str) -> dict:
     }
 
 # ----------------------------
-# Firecrawl Prompt
+# Per-site Prompts
 # ----------------------------
-BASE_PROMPT = """
-Extract job titles and company names from job listings on this search results page.
+DEFAULT_PROMPT = """
+Extract job titles and company names from this search results page.
 Job titles are typically in elements with class 'jobtitle' or within <h2> tags with class 'title' or <a> tags with 'data-tn-element=jobTitle'.
 Company names are typically in elements with class 'company' or 'companyName'.
 Focus on job cards (e.g., elements with class 'job_seen_beacon' or 'result').
@@ -51,10 +49,23 @@ Ignore ads, footers, navigation, or unrelated content.
 Return a JSON array of objects with fields: job_title, company_name.
 """
 
+SITE_PROMPTS = {
+    "Reed": """
+Extract job titles and company names from this Reed search results page.
+Job titles are typically in <h2> tags with class 'title' and inside <a> tags.
+Company names are typically in elements with class 'gtmJobListingPostedBy' or 'job-result-heading__posted-by'.
+Focus only on job cards, ignore ads, footers, and navigation.
+Return a JSON array of objects with fields: job_title, company_name.
+"""
+}
+
+def get_prompt(site_name: str) -> str:
+    return SITE_PROMPTS.get(site_name, DEFAULT_PROMPT)
+
 # ----------------------------
-# Firecrawl Call
+# Firecrawl Scraping with retry
 # ----------------------------
-def scrape_jobs(url: str) -> list[dict]:
+def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
@@ -66,20 +77,27 @@ def scrape_jobs(url: str) -> list[dict]:
     payload = {
         "url": url,
         "formats": ["extract"],
-        "extract": {"prompt": BASE_PROMPT}
+        "extract": {"prompt": get_prompt(site_name)}
     }
 
-    r = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-    if r.status_code != 200:
-        raise RuntimeError(f"HTTP {r.status_code}, {r.text}")
-
-    data = r.json()
-    results = data.get("data", {}).get("extract", [])
-    if isinstance(results, dict) and "extract" in results:
-        results = results["extract"]
-    if not isinstance(results, list):
-        results = []
-    return results[:10]
+    for attempt in range(3):
+        try:
+            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+            r.raise_for_status()
+            data = r.json()
+            results = data.get("data", {}).get("extract", [])
+            if isinstance(results, dict) and "extract" in results:
+                results = results["extract"]
+            if not isinstance(results, list):
+                results = []
+            return results[:10]
+        except requests.exceptions.ReadTimeout:
+            time.sleep(2)
+            if attempt == 2:
+                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
+        except Exception as e:
+            if attempt == 2:
+                raise RuntimeError(f"Failed to scrape {site_name}: {e}")
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
@@ -87,7 +105,7 @@ def run_all(job_title: str, location: str) -> dict:
     out = {}
     for site, url in urls.items():
         try:
-            jobs = scrape_jobs(url)
+            jobs = scrape_jobs(url, site)
             out[site] = {"url": url, "jobs": jobs}
         except Exception as e:
             out[site] = {"url": url, "jobs": [], "error": str(e)}
@@ -110,7 +128,7 @@ if submitted:
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
     st.metric("Total Jobs Found", len(all_jobs))
 
-    # Tabs for each site
+    # Tabs
     tabs = st.tabs(list(data.keys()))
 
     for tab, (site, payload) in zip(tabs, data.items()):
@@ -119,7 +137,7 @@ if submitted:
 
             err = payload.get("error")
             if err:
-                st.warning(f"⚠️ Failed to scrape: {err}")
+                st.warning(f"⚠️ {err}")
                 continue
 
             jobs = payload.get("jobs", [])
@@ -127,7 +145,7 @@ if submitted:
                 st.info("No jobs found.")
                 continue
 
-            # Job Cards
+            # Job cards
             for j in jobs:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
