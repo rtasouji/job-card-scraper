@@ -35,7 +35,7 @@ def build_urls(job_title: str, location: str) -> dict:
     #    "Indeed":     f"https://uk.indeed.com/jobs?q={q_job}&l={q_loc}",
     #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
     #    "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-        "Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk"
+         "Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk"
 
     }
 
@@ -96,18 +96,19 @@ Extract job titles, company names, and job locations from TotalJobs.
 Return JSON array of objects: job_title, company_name, location
 Ignore unrelated content
 """,
-    "Jooble": """
-Extract job titles, company names, and job locations from this Jooble search results page.
+    "Hays": """
+Extract job titles, company names, and job locations from this Hays search results page.
 
-Each job listing is contained in a job card container.  
+Each job listing is contained in an element with class containing 'job-card' or similar.
 Within each job card:
-- Extract the job title from the <a> tag with class 'job_card_link'. Keep the full text exactly as it appears.
-- Extract the company name from the <p> tag with attribute data-test-name="_companyName".
-- Extract the location from the <div> tag with class containing 'caption NTRJBV'.
+- Extract the job title from the <a> tag or heading element with class containing 'job-title'.
+- Extract the company name from the element that contains the recruiter/employer name (often in a <span> or <p> tag inside the job card).
+- Extract the location from the element containing the location info.
 
 Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
-Ignore ads, similar jobs, badges, or any content outside the job card container.
+Ignore ads, footers, similar jobs, or content outside the job cards.
 """,
+
     "CVLibrary": """
 Extract job titles, company names, and job locations from CVLibrary search results.
 
