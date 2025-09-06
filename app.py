@@ -191,20 +191,28 @@ if submitted:
                 st.info("No jobs found.")
                 continue
 
-            # Job cards with location
+            # Job cards
             for j in jobs:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
 
                 st.markdown(f"""
-                <div style="padding:15px; margin:10px 0; border-radius:12px;
-                            border:1px solid #ddd; background-color:#fdfdfd;
-                            box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
-                    <h4 style="margin:0; color:#333;">{title}</h4>
-                    <p style="margin:2px 0 0; color:#666;">{company} • {location}</p>
+                <div style="
+                    padding: 20px; 
+                    margin: 12px 0; 
+                    border-radius: 15px; 
+                    border: 1px solid #e0e0e0; 
+                    background: linear-gradient(to bottom, #ffffff, #f9f9f9); 
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.08)';">
+                    <h4 style="margin:0 0 6px 0; color:#1a1a1a;">{title}</h4>
+                    <p style="margin:2px 0 2px 0; color:#555;"><strong>Company:</strong> {company}</p>
+                    <p style="margin:2px 0 0 0; color:#888;"><strong>Location:</strong> {location}</p>
                 </div>
                 """, unsafe_allow_html=True)
+
 
     st.divider()
     st.caption("✨ Demo dashboard built with Streamlit and Firecrawl")
