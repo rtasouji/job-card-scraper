@@ -1,11 +1,12 @@
 import os
 import re
 import json
+import time
+import asyncio
+import aiohttp
 import requests
 import streamlit as st
 from urllib.parse import quote_plus
-import time
-
 
 # Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
@@ -13,15 +14,10 @@ API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
 st.title("🌐 Multi Job Board Aggregator")
-
 st.caption("Enter a job title and a location. The app fetches top job listings from multiple job boards and displays them neatly for you.")
-
 
 # ----------------------------
 # URL Builders
-# ----------------------------
-# ----------------------------
-# URL Builders (Hays + Breakroom included)
 # ----------------------------
 def hyphenate(s: str) -> str:
     return re.sub(r"\s+", "-", s.strip().lower())
@@ -32,16 +28,14 @@ def build_urls(job_title: str, location: str) -> dict:
 
     return {
         "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    #    "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #    "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-         "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
-    #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
-    #    "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-    #    "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-     #   "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+        "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+        "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+        "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+        "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
+        "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
+        "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+        "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
-
-
 
 # ----------------------------
 # Site-specific prompts
@@ -111,7 +105,6 @@ Within each job card:
 Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
 Ignore ads, footers, similar jobs, or content outside the job cards.
 """,
-
     "CVLibrary": """
 Extract job titles, company names, and job locations from CVLibrary search results.
 
@@ -133,60 +126,51 @@ Within each job card:
 
 Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.  
 Ignore ads, footers, similar jobs, or any content outside the job card container.
-
-    """,
+""",
 }
 
 def get_prompt(site_name: str) -> str:
     return SITE_PROMPTS.get(site_name)
 
 # ----------------------------
-# Firecrawl Scraping with retry
+# Async Firecrawl Scraping
 # ----------------------------
-def scrape_jobs(url: str, site_name: str) -> list[dict]:
-    if not API_KEY:
-        raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
+semaphore = asyncio.Semaphore(2)  # allow 2 concurrent requests
 
+async def scrape_jobs_async(session, url: str, site_name: str) -> tuple[str, dict]:
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
 
-    for attempt in range(3):
-        try:
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
-            r.raise_for_status()
-            data = r.json()
-            results = data.get("data", {}).get("extract", [])
-            if isinstance(results, dict) and "extract" in results:
-                results = results["extract"]
-            if not isinstance(results, list):
+    try:
+        async with semaphore:
+            async with session.post(API_URL, headers=headers, json=payload, timeout=120) as r:
+                r.raise_for_status()
+                data = await r.json()
+                results = data.get("data", {}).get("extract", [])
+                if isinstance(results, dict) and "extract" in results:
+                    results = results["extract"]
+                if not isinstance(results, list):
+                    results = []
+
+        # Check for "no results found" in page
+        async with session.get(url) as check_r:
+            text = await check_r.text()
+            if "Sorry, no results were found" in text:
                 results = []
-            return results[:10]
-        except requests.exceptions.ReadTimeout:
-            time.sleep(2)
-            if attempt == 2:
-                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
-        except Exception as e:
-            if attempt == 2:
-                raise RuntimeError(f"Failed to scrape {site_name}: {e}")
 
-@st.cache_data(show_spinner=False, ttl=600)
-def run_all(job_title: str, location: str) -> dict:
+        return site_name, {"url": url, "jobs": results[:10]}
+    except Exception as e:
+        return site_name, {"url": url, "jobs": [], "error": str(e)}
+
+async def run_all_async(job_title: str, location: str) -> dict:
     urls = build_urls(job_title, location)
-    out = {}
-    for site, url in urls.items():
-        try:
-            jobs = scrape_jobs(url, site)
+    async with aiohttp.ClientSession() as session:
+        tasks = [scrape_jobs_async(session, url, site) for site, url in urls.items()]
+        results = await asyncio.gather(*tasks)
+        return dict(results)
 
-            # Check page text for "no results" messages (optional: use requests.get() to fetch page content)
-            r = requests.get(url)
-            if "Sorry, no results were found" in r.text:
-                jobs = []  # override with empty if no results
-
-            out[site] = {"url": url, "jobs": jobs}
-        except Exception as e:
-            out[site] = {"url": url, "jobs": [], "error": str(e)}
-    return out
-
+def run_all(job_title: str, location: str) -> dict:
+    return asyncio.run(run_all_async(job_title, location))
 
 # ----------------------------
 # UI
@@ -198,7 +182,7 @@ with st.form("search"):
     submitted = st.form_submit_button("Search")
 
 if submitted:
-    with st.spinner("Fetching the hottest jobs for you... 🔍"):
+    with st.spinner("Fetching the hottest jobs for you... 🔍 Sit tight, magic is happening ✨"):
         data = run_all(job_title, location)
 
     # Summary
