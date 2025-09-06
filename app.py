@@ -207,8 +207,24 @@ if submitted:
     # Tabs
     tabs = st.tabs(list(data.keys()))
 
+    # Define site colors
+    SITE_COLORS = {
+        "Adzuna": "#FF6B6B",
+        "CWJobs": "#4F46E5",
+        "TotalJobs": "#10B981",
+        "Hays": "#F59E0B",
+        "Indeed": "#2563EB",
+        "Reed": "#8B5CF6",
+        "CVLibrary": "#F43F5E",
+        "Breakroom": "#F53F5E"
+    }
+
     for tab, (site, payload) in zip(tabs, data.items()):
         with tab:
+            # Use the site's color for the CTA button
+            accent = SITE_COLORS.get(site, "#1a73e8")
+            
+            # Make the link a prominent button-like CTA
             st.markdown(
                 f"""
                 <a href="{payload["url"]}" target="_blank" style="
@@ -241,18 +257,6 @@ if submitted:
                 st.info("😕 No job results found for your search.")
                 continue
 
-            # Define site colors
-            SITE_COLORS = {
-                "Adzuna": "#FF6B6B",
-                "CWJobs": "#4F46E5",
-                "TotalJobs": "#10B981",
-                "Hays": "#F59E0B",
-                "Indeed": "#2563EB",
-                "Reed": "#8B5CF6",
-                "CVLibrary": "#F43F5E",
-                "Breakroom": "#F53F5E"
-            }
-            
             # Create two columns for the job cards
             col1, col2 = st.columns(2)
 
