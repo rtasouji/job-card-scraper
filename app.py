@@ -213,7 +213,7 @@ if submitted:
             st.markdown(
                 f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
                 unsafe_allow_html=True
-)
+            )
 
             err = payload.get("error")
             if err:
@@ -224,7 +224,6 @@ if submitted:
             if not jobs:
                 st.info("😕 No job results found for your search.")
                 continue
-
 
             # Define site colors
             SITE_COLORS = {
@@ -238,35 +237,39 @@ if submitted:
                 "Breakroom": "#F53F5E"
             }
 
-            # Job cards with site-based color accents
-            for j in jobs:
+            # Create two columns for job cards
+            cols = st.columns(2)
+
+            for idx, j in enumerate(jobs, start=1):
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
 
-                accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
+                accent = SITE_COLORS.get(site, "#1f2937")  # fallback dark gray
 
-                st.markdown(f"""
-                <div style="
-                    padding:20px; 
-                    margin:12px 0; 
-                    border-radius:15px; 
-                    border:1px solid {accent}; 
-                    background: linear-gradient(90deg, #fdfdfd, #f7f9fc);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                    transition: transform 0.2s;
-                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                    <h4 style="margin:0; color:{accent}; font-weight:700;">{title}</h4>
-                    <p style="margin:4px 0 0; color:#4b5563;">
-                        <span style="margin-right:6px;">🏢</span> Company: {company}
-                    </p>
-                    <p style="margin:2px 0 0; color:#6b7280;">
-                        <span style="margin-right:6px;">📍</span> Location: {location}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-
-
+                col = cols[(idx - 1) % 2]  # alternate between the 2 columns
+                with col:
+                    st.markdown(f"""
+                    <div style="
+                        padding:20px; 
+                        margin:12px 0; 
+                        border-radius:15px; 
+                        border:1px solid {accent}; 
+                        background: linear-gradient(90deg, #fdfdfd, #f7f9fc);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                        <h4 style="margin:0; color:{accent}; font-weight:700;">
+                            #{idx} {title}
+                        </h4>
+                        <p style="margin:4px 0 0; color:#4b5563;">
+                            <span style="margin-right:6px;">🏢</span> Company: {company}
+                        </p>
+                        <p style="margin:2px 0 0; color:#6b7280;">
+                            <span style="margin-right:6px;">📍</span> Location: {location}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
     st.divider()
     st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
