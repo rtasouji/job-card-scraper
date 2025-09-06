@@ -208,7 +208,7 @@ with st.form("search"):
 
 if submitted:
     with st.spinner(random.choice(loading_messages)):
-    data = run_all(job_title, location)
+     data = run_all(job_title, location)
 
     # Summary
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
