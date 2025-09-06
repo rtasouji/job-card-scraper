@@ -31,8 +31,8 @@ def build_urls(job_title: str, location: str) -> dict:
     loc_dash = hyphenate(location)
 
     return {
-        "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-        "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    #    "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
+    #    "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #    "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
          "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
@@ -213,7 +213,7 @@ if submitted:
             st.markdown(
                 f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
                 unsafe_allow_html=True
-            )
+)
 
             err = payload.get("error")
             if err:
@@ -224,6 +224,7 @@ if submitted:
             if not jobs:
                 st.info("😕 No job results found for your search.")
                 continue
+
 
             # Define site colors
             SITE_COLORS = {
@@ -237,39 +238,35 @@ if submitted:
                 "Breakroom": "#F53F5E"
             }
 
-            # Create two columns for job cards
-            cols = st.columns(2)
-
-            for idx, j in enumerate(jobs, start=1):
+            # Job cards with site-based color accents
+            for j in jobs:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
 
-                accent = SITE_COLORS.get(site, "#1f2937")  # fallback dark gray
+                accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
 
-                col = cols[(idx - 1) % 2]  # alternate between the 2 columns
-                with col:
-                    st.markdown(f"""
-                    <div style="
-                        padding:20px; 
-                        margin:12px 0; 
-                        border-radius:15px; 
-                        border:1px solid {accent}; 
-                        background: linear-gradient(90deg, #fdfdfd, #f7f9fc);
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                        transition: transform 0.2s;
-                    " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                        <h4 style="margin:0; color:{accent}; font-weight:700;">
-                            #{idx} {title}
-                        </h4>
-                        <p style="margin:4px 0 0; color:#4b5563;">
-                            <span style="margin-right:6px;">🏢</span> Company: {company}
-                        </p>
-                        <p style="margin:2px 0 0; color:#6b7280;">
-                            <span style="margin-right:6px;">📍</span> Location: {location}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="
+                    padding:20px; 
+                    margin:12px 0; 
+                    border-radius:15px; 
+                    border:1px solid {accent}; 
+                    background: linear-gradient(90deg, #fdfdfd, #f7f9fc);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    transition: transform 0.2s;
+                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <h4 style="margin:0; color:{accent}; font-weight:700;">{title}</h4>
+                    <p style="margin:4px 0 0; color:#4b5563;">
+                        <span style="margin-right:6px;">🏢</span> Company: {company}
+                    </p>
+                    <p style="margin:2px 0 0; color:#6b7280;">
+                        <span style="margin-right:6px;">📍</span> Location: {location}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+
+
 
     st.divider()
     st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
