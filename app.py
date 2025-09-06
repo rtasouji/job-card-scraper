@@ -33,11 +33,11 @@ def build_urls(job_title: str, location: str) -> dict:
     #    "Adzuna":     f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
     #    "CWJobs":     f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #    "TotalJobs":  f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #    "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+         "Indeed":     f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
     #    "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
     #    "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-        "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+     #   "Breakroom":  f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
 
 
@@ -227,10 +227,11 @@ if submitted:
                 "Adzuna": "#FF6B6B",
                 "CWJobs": "#4F46E5",
                 "TotalJobs": "#10B981",
-                "Jooble": "#F59E0B",
+                "Hays": "#F59E0B",
                 "Indeed": "#2563EB",
                 "Reed": "#8B5CF6",
-                "CVLibrary": "#F43F5E"
+                "CVLibrary": "#F43F5E",
+                "Breakroom": "#F53F5E"
             }
 
             # Job cards with site-based color accents
