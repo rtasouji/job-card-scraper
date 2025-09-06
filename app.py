@@ -209,7 +209,10 @@ if submitted:
 
     for tab, (site, payload) in zip(tabs, data.items()):
         with tab:
-            st.write(f"[Search link]({payload['url']})")
+            st.markdown(
+                f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
+                unsafe_allow_html=True
+)
 
             err = payload.get("error")
             if err:
