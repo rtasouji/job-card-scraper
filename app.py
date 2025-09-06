@@ -238,15 +238,18 @@ if submitted:
                 "Breakroom": "#F53F5E"
             }
 
-            # Job cards with site-based color accents
-            for j in jobs:
+            # Show max 10 jobs in two columns
+            jobs_to_show = jobs[:10]
+            cols = st.columns(2)
+
+            for i, j in enumerate(jobs_to_show):
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
 
                 accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
 
-                st.markdown(f"""
+                card_html = f"""
                 <div style="
                     padding:20px; 
                     margin:12px 0; 
@@ -255,7 +258,7 @@ if submitted:
                     background: linear-gradient(90deg, #fdfdfd, #f7f9fc);
                     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
                     transition: transform 0.2s;
-                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                ">
                     <h4 style="margin:0; color:{accent}; font-weight:700;">{title}</h4>
                     <p style="margin:4px 0 0; color:#4b5563;">
                         <span style="margin-right:6px;">🏢</span> Company: {company}
@@ -264,9 +267,10 @@ if submitted:
                         <span style="margin-right:6px;">📍</span> Location: {location}
                     </p>
                 </div>
-                """, unsafe_allow_html=True)
+                """
 
-
+                col = cols[i % 2]  # alternate between left and right column
+                col.markdown(card_html, unsafe_allow_html=True)
 
     st.divider()
     st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
