@@ -205,42 +205,42 @@ if submitted:
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
     st.metric("Total Jobs Found", len(all_jobs))
 
-# Tabs
-tabs = st.tabs(list(data.keys()))
+    # Tabs
+    tabs = st.tabs(list(data.keys()))
 
-for tab, (site, payload) in zip(tabs, data.items()):
-    with tab:
-        st.markdown(
-            f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
-            unsafe_allow_html=True
-        )
+    for tab, (site, payload) in zip(tabs, data.items()):
+        with tab:
+            st.markdown(
+                f'<a href="{payload["url"]}" target="_blank" style="text-decoration:none; color:#1a73e8;">🔗 Search link</a>',
+                unsafe_allow_html=True
+            )
 
-        err = payload.get("error")
-        if err:
-            st.warning(f"⚠️ {err}")
-            continue
+            err = payload.get("error")
+            if err:
+                st.warning(f"⚠️ {err}")
+                continue
 
-        jobs = payload.get("jobs", [])
-        if not jobs:
-            st.info("😕 No job results found for your search.")
-            continue
+            jobs = payload.get("jobs", [])
+            if not jobs:
+                st.info("😕 No job results found for your search.")
+                continue
 
-        # Two-column job layout with job numbering
-        cols = st.columns(2)
-        for idx, job in enumerate(jobs, start=1):
-            col = cols[(idx - 1) % 2]
-            with col:
-                st.markdown(
-                    f"""
-                    <div style="border:1px solid #ddd; border-radius:8px; padding:12px; margin:8px 0; background:#fafafa;">
-                        <strong>#{idx}</strong>  
-                        <h4 style="margin:4px 0;">{job.get('title', 'No Title')}</h4>
-                        <p style="margin:0;"><em>{job.get('company', 'Unknown Company')}</em></p>
-                        <p style="margin:0;">{job.get('location', 'Unknown Location')}</p>
-                        <a href="{job.get('link', '#')}" target="_blank" style="text-decoration:none; color:#1a73e8;">View Job</a>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+            # Two-column job layout with job numbering
+            cols = st.columns(2)
+            for idx, job in enumerate(jobs, start=1):
+                col = cols[(idx - 1) % 2]
+                with col:
+                    st.markdown(
+                        f"""
+                        <div style="border:1px solid #ddd; border-radius:8px; padding:12px; margin:8px 0; background:#fafafa;">
+                            <strong>#{idx}</strong>  
+                            <h4 style="margin:4px 0;">{job.get('title', 'No Title')}</h4>
+                            <p style="margin:0;"><em>{job.get('company', 'Unknown Company')}</em></p>
+                            <p style="margin:0;">{job.get('location', 'Unknown Location')}</p>
+                            <a href="{job.get('link', '#')}" target="_blank" style="text-decoration:none; color:#1a73e8;">View Job</a>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
                 )
 
 
