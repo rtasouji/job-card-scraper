@@ -35,7 +35,8 @@ def build_urls(job_title: str, location: str) -> dict:
     #    "Indeed":     f"https://uk.indeed.com/jobs?q={q_job}&l={q_loc}",
     #    "Reed":       f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
     #    "CVLibrary":  f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-        "Hays":       f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+        "Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk"
+
     }
 
 
