@@ -12,6 +12,7 @@ API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
 st.title("🌐 Multi Job Board Aggregator")
+
 st.caption("Enter a job title and a location. The app fetches top job listings from multiple job boards and displays them neatly for you.")
 
 
@@ -169,8 +170,7 @@ with st.form("search"):
 
 if submitted:
     with st.spinner("Fetching the hottest jobs for you... 🔍"):
-    data = run_all(job_title, location)
-
+        data = run_all(job_title, location)
 
     # Summary
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
@@ -218,4 +218,3 @@ if submitted:
 
     st.divider()
     st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
-
