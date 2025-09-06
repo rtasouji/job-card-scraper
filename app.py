@@ -55,11 +55,12 @@ Extract job titles and company names from this Reed search results page.
 
 Each job listing is contained in an <article> element with class containing 'job-card_jobCard'.
 Within each job card:
-- Extract the job title from the <a> tag with attribute data-element="job_title". Keep the full text exactly as it appears.
-- Extract the company name from the <a> tag with attribute data-element="recruiter". Do not infer from the job title.
+- Only use the <header> section for extraction.
+- Extract the job title from the <a> tag with attribute data-element="job_title" inside the header. Keep the full text exactly as it appears.
+- Extract the company name from the <a> tag with attribute data-element="recruiter" inside the header. Do not extract anything from the job description or other sections.
 
 Return a JSON array of objects, one per job card, with fields: job_title, company_name.
-Ignore any other links, badges, similar jobs, or metadata outside the main job card.
+Ignore any other links, badges, similar jobs, or metadata outside the header.
 
 """
 }
