@@ -11,6 +11,32 @@ API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
 API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
+st.markdown("""
+<style>
+/* This hides the anchor link icon that appears on hover */
+.stApp h1 > div:nth-child(1) > a,
+.stApp h2 > div:nth-child(1) > a,
+.stApp h3 > div:nth-child(1) > a {
+    display: none;
+}
+
+/* This hides the anchor links for markdown headers */
+.stApp h1 > a,
+.stApp h2 > a,
+.stApp h3 > a,
+.stApp h4 > a,
+.stApp h5 > a,
+.stApp h6 > a {
+    display: none;
+}
+
+/* This hides the anchor link icon that appears on hover for markdown headers */
+.stApp .header > a,
+.stApp .subheader > a {
+    display: none;
+}
+</style>
+""", unsafe_allow_html=True)
 st.title("🌐 Multi Job Board Aggregator")
 
 st.caption("Enter a job title and a location. The app fetches top job listings from multiple job boards and displays them neatly for you.")
