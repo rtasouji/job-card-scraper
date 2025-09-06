@@ -248,17 +248,54 @@ if submitted:
                 continue
 
             # Define site colors
-            SITE_COLORS = {
-                "Adzuna": "#FF6B6B",
-                "CWJobs": "#4F46E5",
-                "TotalJobs": "#10B981",
-                "Hays": "#F59E0B",
-                "Indeed": "#2563EB",
-                "Reed": "#8B5CF6",
-                "CVLibrary": "#F43F5E",
-                "Breakroom": "#F53F5E"
-            }
+    SITE_COLORS = {
+        "Adzuna": "#FF6B6B",
+        "CWJobs": "#4F46E5",
+        "TotalJobs": "#10B981",
+        "Hays": "#F59E0B",
+        "Indeed": "#2563EB",
+        "Reed": "#8B5CF6",
+        "CVLibrary": "#F43F5E",
+        "Breakroom": "#F53F5E"
+    }
+
+    for tab, (site, payload) in zip(tabs, data.items()):
+        with tab:
+            # Use the site's color for the CTA button
+            accent = SITE_COLORS.get(site, "#1a73e8")
             
+            # Make the link a prominent button-like CTA
+            st.markdown(
+                f"""
+                <a href="{payload["url"]}" target="_blank" style="
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: {accent};
+                    color: white;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    text-align: center;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    transition: all 0.2s ease-in-out;
+                    margin-bottom: 20px;
+                " onmouseover="this.style.backgroundColor='darken({accent}, 10%)'; this.style.boxShadow='0 6px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.backgroundColor='{accent}'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'">
+                    🔗 View on {site}
+                </a>
+                """,
+                unsafe_allow_html=True
+            )
+
+            err = payload.get("error")
+            if err:
+                st.warning(f"⚠️ {err}")
+                continue
+
+            jobs = payload.get("jobs", [])
+            if not jobs:
+                st.info("😕 No job results found for your search.")
+                continue
+
             # Create two columns for the job cards
             col1, col2 = st.columns(2)
 
@@ -295,7 +332,6 @@ if submitted:
                     col1.markdown(card_html, unsafe_allow_html=True)
                 else:
                     col2.markdown(card_html, unsafe_allow_html=True)
-
 
     st.divider()
     st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
