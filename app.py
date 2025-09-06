@@ -55,11 +55,11 @@ Extract job titles and company names from this Reed search results page.
 
 Each job listing is contained within a <div> element whose class contains 'job-card_container'.
 Within each job card:
-- The job title is in the <a> tag with attribute data-element="job_title".
-- The company name is in the <a> tag whose class contains 'gtmJobListingPostedBy'.
+- The job title is in the <a> tag with attribute data-element="job_title" inside the <h2> heading.
+- The company name is in the <a> tag whose class contains 'gtmJobListingPostedBy' and is a child of a <div> whose class contains 'postedBy'.
 
 Return a JSON array of objects, one per job card, with fields: job_title, company_name.
-Ignore any other links, similar jobs, or featured badges outside the main job card container.
+Ignore any other links, similar jobs, featured badges, or metadata outside the postedBy section.
 
 """
 }
