@@ -12,7 +12,6 @@ API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Multi Job Board Scraper", layout="wide")
 st.title("🌐 Multi Job Board Scraper (Demo)")
-
 st.caption("Enter a job title and a location. The app builds 7 job board URLs, calls Firecrawl, and shows the top 10 results per site.")
 
 # ----------------------------
@@ -38,41 +37,84 @@ def build_urls(job_title: str, location: str) -> dict:
     }
 
 # ----------------------------
-# Per-site Prompts
+# Site-specific prompts
 # ----------------------------
-DEFAULT_PROMPT = """
-Extract job titles, company names, and job locations from this job listings page.
-
-Each job listing is contained within a job card element (e.g., class contains 'job_seen_beacon', 'result', 'job-card_container', or similar for the site).  
-Within each job card:
-- Extract the job title from the main job title element (e.g., <a> or <h2> with class or attribute like data-element="job_title"). Keep the full text exactly as it appears.  
-- Extract the company name from the company element (e.g., class contains 'company', 'companyName', or <a> with data-element="recruiter").  
-- Extract the location from the location element (e.g., class contains 'location', 'job-card_jobMetadata__item___QNud' with data-qa="job-card-location", or similar).  
-
-Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.  
-Ignore ads, footers, similar jobs, or any content outside the job card container.
-
-"""
-
 SITE_PROMPTS = {
     "Reed": """
 Extract job titles, company names, and job locations from this Reed search results page.
 
-Each job listing is contained in an <article> element with class containing 'job-card_jobCard'.
-Within each job card:
-- Only use the <header> section for extraction.
-- Extract the job title from the <a> tag with attribute data-element="job_title" inside the header. Keep the full text exactly as it appears.
-- Extract the company name from the <a> tag with attribute data-element="recruiter" inside the header.
-- Extract the job location from the element inside the header with data-qa="job-card-location" or similar location element.
+Each job listing is in an <article> element with class containing 'job-card_jobCard'.
+Within the <header> section of each job card:
+- Job title: <a> tag with data-element="job_title"
+- Company: <a> tag with data-element="recruiter"
+- Location: <li> element with data-qa="job-card-location"
 
-Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
-Ignore any other links, badges, similar jobs, or metadata outside the header.
+Return JSON array of objects: job_title, company_name, location
+Ignore any content outside <header> (including job descriptions or "Go to similar" links)
+""",
+    "Indeed": """
+Extract job titles, company names, and job locations from this Indeed page.
 
+- Job title: element with class 'jobtitle' or <h2 class="title"><a ...></a></h2>
+- Company: class 'company' or 'companyName'
+- Location: class 'location' or 'companyLocation'
+
+Return JSON array of objects: job_title, company_name, location
+Ignore ads, footers, or unrelated content
+""",
+    "Adzuna": """
+Extract job titles, company names, and job locations from Adzuna job cards.
+
+- Job title: element with class 'job_title' or similar
+- Company: element with class 'company' or 'company_name'
+- Location: element with class 'location'
+
+Return JSON array of objects: job_title, company_name, location
+Ignore unrelated content
+""",
+    "CWJobs": """
+Extract job titles, company names, and job locations from CWJobs.
+
+- Job title: <h2> or <a> inside job card
+- Company: element with class 'job-company'
+- Location: element with class 'job-location'
+
+Return JSON array of objects: job_title, company_name, location
+Ignore unrelated content
+""",
+    "TotalJobs": """
+Extract job titles, company names, and job locations from TotalJobs.
+
+- Job title: element with class 'job-title'
+- Company: element with class 'job-company'
+- Location: element with class 'job-location'
+
+Return JSON array of objects: job_title, company_name, location
+Ignore unrelated content
+""",
+    "Jooble": """
+Extract job titles, company names, and job locations from Jooble search results.
+
+- Job title: <a> with class containing 'position'
+- Company: element with class 'company'
+- Location: element with class 'location'
+
+Return JSON array of objects: job_title, company_name, location
+""",
+    "CVLibrary": """
+Extract job titles, company names, and job locations from CVLibrary search results.
+
+- Job title: <h2> or <a> inside job card
+- Company: element with class 'job-company'
+- Location: element with class 'job-location'
+
+Return JSON array of objects: job_title, company_name, location
+Ignore unrelated content
 """
 }
 
 def get_prompt(site_name: str) -> str:
-    return SITE_PROMPTS.get(site_name, DEFAULT_PROMPT)
+    return SITE_PROMPTS.get(site_name)
 
 # ----------------------------
 # Firecrawl Scraping with retry
@@ -81,16 +123,8 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "url": url,
-        "formats": ["extract"],
-        "extract": {"prompt": get_prompt(site_name)}
-    }
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
 
     for attempt in range(3):
         try:
@@ -157,17 +191,18 @@ if submitted:
                 st.info("No jobs found.")
                 continue
 
-            # Job cards
+            # Job cards with location
             for j in jobs:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
+                location = j.get("location") or "Unknown location"
 
                 st.markdown(f"""
                 <div style="padding:15px; margin:10px 0; border-radius:12px;
                             border:1px solid #ddd; background-color:#fdfdfd;
                             box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
                     <h4 style="margin:0; color:#333;">{title}</h4>
-                    <p style="margin:2px 0 0; color:#666;">{company}</p>
+                    <p style="margin:2px 0 0; color:#666;">{company} • {location}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
