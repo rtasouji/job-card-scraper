@@ -10,9 +10,10 @@ import time
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
 API_URL = "https://api.firecrawl.dev/v1/scrape"
 
-st.set_page_config(page_title="Multi Job Board Scraper", layout="wide")
-st.title("🌐 Multi Job Board Scraper (Demo)")
-st.caption("Enter a job title and a location. The app builds 7 job board URLs, calls Firecrawl, and shows the top 10 results per site.")
+st.set_page_config(page_title="Job Board Aggregator", layout="wide")
+st.title("🌐 Multi Job Board Aggregator")
+st.caption("Enter a job title and a location. The app fetches top job listings from multiple job boards and displays them neatly for you.")
+
 
 # ----------------------------
 # URL Builders
@@ -167,8 +168,9 @@ with st.form("search"):
     submitted = st.form_submit_button("Search")
 
 if submitted:
-    with st.spinner("Scraping job boards with Firecrawl..."):
-        data = run_all(job_title, location)
+    with st.spinner("Fetching the hottest jobs for you... 🔍"):
+    data = run_all(job_title, location)
+
 
     # Summary
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
@@ -215,4 +217,5 @@ if submitted:
 
 
     st.divider()
-    st.caption("✨ Demo dashboard built with Streamlit and Firecrawl")
+    st.caption("✨ Demo dashboard built with Streamlit, aggregating top jobs for you")
+
