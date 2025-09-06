@@ -175,10 +175,17 @@ def run_all(job_title: str, location: str) -> dict:
     for site, url in urls.items():
         try:
             jobs = scrape_jobs(url, site)
+
+            # Check page text for "no results" messages (optional: use requests.get() to fetch page content)
+            r = requests.get(url)
+            if "Sorry, no results were found" in r.text:
+                jobs = []  # override with empty if no results
+
             out[site] = {"url": url, "jobs": jobs}
         except Exception as e:
             out[site] = {"url": url, "jobs": [], "error": str(e)}
     return out
+
 
 # ----------------------------
 # UI
@@ -211,7 +218,7 @@ if submitted:
 
             jobs = payload.get("jobs", [])
             if not jobs:
-                st.info("No jobs found.")
+                st.info("😕 No job results found for your search.")
                 continue
 
 
