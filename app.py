@@ -53,10 +53,11 @@ SITE_PROMPTS = {
     "Reed": """
 Extract job titles and company names from this Reed search results page.
 
-Job titles are typically in <h2> tags with class 'title' and inside <a> tags within the job card.
-Company names are typically in <a> tags with class 'gtmJobListingPostedBy' inside the job card.
+Job titles are typically in <h2> tags with class 'title' and inside <a> tags within each job card.
+Company names are always in <a> tags whose class contains 'gtmJobListingPostedBy'.
 Focus only on job cards, ignore ads, footers, navigation, and unrelated content.
 Return a JSON array of objects with fields: job_title, company_name.
+
 
 """
 }
