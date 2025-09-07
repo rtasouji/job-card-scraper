@@ -78,7 +78,7 @@ Extract job titles, company names, job locations, and salary information from th
 - Job title: element with class 'jobtitle' or <h2 class="title"><a ...></a></h2>
 - Company: class 'company' or 'companyName'
 - Location: class 'location' or 'companyLocation'
-- Salary: element with class 'salary-snippet', 'salaryText', or similar.
+- Salary: element with data-testid="salary-snippet-container", or class 'salary-snippet' or 'salaryText'.
 
 Return JSON array of objects: job_title, company_name, location, salary
 Ignore ads, footers, or unrelated content
@@ -291,7 +291,7 @@ if submitted:
                 st.info("😕 No job results found for your search.")
                 continue
 
-            # Create two columns for the job cards
+# Create two columns for the job cards
             col1, col2 = st.columns(2)
 
             # Job cards with site-based color accents
@@ -299,8 +299,24 @@ if submitted:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
-                # NEW: Get salary data, defaulting if not found
-                salary = j.get("salary") or "Not specified"
+                
+                # Get salary data
+                salary = j.get("salary")
+                
+                # Add validation for irrelevant salary data
+                irrelevant_keywords = ["permanent", "contract", "full-time", "part-time", "temporary", "per annum"]
+                
+                if salary:
+                    # Check if the salary contains a number, a currency symbol, or a 'k'
+                    has_relevant_info = any(c.isdigit() or c in "£$€" or "k" in salary.lower() for c in salary)
+                    
+                    # Check if the salary is just an irrelevant keyword
+                    is_irrelevant_keyword = any(keyword in salary.lower() for keyword in irrelevant_keywords)
+                    
+                    if not has_relevant_info or is_irrelevant_keyword:
+                        salary = "N/A"
+                else:
+                    salary = "N/A"
                 
                 accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
 
