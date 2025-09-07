@@ -8,7 +8,7 @@ import time
 
 # Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
-API_URL = "https://api.firecrawl.dev/v1/scrape"
+API_URL = "https://api.firecrawl.dev/v1/extract"
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
 st.markdown("""
