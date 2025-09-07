@@ -95,12 +95,7 @@ Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "CWJobs": """
-Extract job titles, company names, job locations, and salary information from CWJobs.
-
-- Job title: <h2> or <a> inside job card
-- Company: element with class 'job-company'
-- Location: element with class 'job-location'
-- Salary: element with class 'job-salary' or similar.
+Extract all job listings. For each job return: job_title, company_name, location, salary.
 
 Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
