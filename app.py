@@ -152,43 +152,38 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    prompt_text = get_prompt(site_name)
+    if not prompt_text:
+        prompt_text = "Extract job titles, company name, location, and salary data from each job card on the search results page."
 
-    # Use playground-style prompt extraction
     payload = {
         "url": url,
         "formats": ["extract"],
         "extract": {
             "type": "prompt",
-            "prompt": get_prompt(site_name) or "Extract job titles, company name, location, and salary data from each job card on the search results page."
+            "prompt": prompt_text
         }
     }
+
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+
+    st.write(f"[debug] payload for {site_name}:\n{json.dumps(payload, indent=2)}")
 
     for attempt in range(3):
         try:
             st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
             r = requests.post(API_URL, headers=headers, json=payload, timeout=60)
             st.write(f"[debug] status {r.status_code} for {site_name}")
-            st.text(r.text[:500])
+            st.text(r.text[:500])  # show first 500 chars for debug
 
             r.raise_for_status()
             data = r.json()
 
-            # Parse extract correctly
-            extract_data = data.get("data", {}).get("extract")
-            results = []
+            # Firecrawl stores extracted data under data.extract or data.extract.extract
+            results = data.get("data", {}).get("extract", [])
+            if isinstance(results, dict) and "extract" in results:
+                results = results["extract"]
 
-            if isinstance(extract_data, dict):
-                # If playground-style, it may contain 'job_cards'
-                if "job_cards" in extract_data:
-                    results = extract_data["job_cards"]
-                else:
-                    # fallback: flatten any other dict values
-                    results = list(extract_data.values())
-            elif isinstance(extract_data, list):
-                results = extract_data
-
-            # Ensure it's a list
             if not isinstance(results, list):
                 results = []
 
@@ -198,6 +193,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
+
 
 
 @st.cache_data(show_spinner=False, ttl=600)
