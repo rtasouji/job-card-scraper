@@ -44,13 +44,13 @@ def build_urls(job_title: str, location: str) -> dict:
 
     return {
     "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    "Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
-    "Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
-    "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-    "Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-    "Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+    #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+    #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
+    #"CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
+    #"Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+    #"Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
 
 
@@ -167,7 +167,18 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
+    payload = {
+    "url": url,
+    "mode": "smart",  # Use the advanced anti-bot bypass mode
+    "formats": ["extract"], 
+    "extract": {"prompt": get_prompt(site_name)},
+    # Use a UK proxy to avoid geo-blocking
+    "crawlerOptions": {
+        "proxy": {
+            "country": "GB"
+        }
+    }
+}
 
     for attempt in range(3):
         try:
@@ -201,12 +212,13 @@ def run_all(job_title: str, location: str) -> dict:
             try:
                 jobs = scrape_jobs(url, site)
 
-                # Check page text for "no results" messages
-                r = requests.get(url)
-                if "Sorry, no results were found" in r.text:
-                    jobs = []
-
+                # The scrape_jobs function will return an empty list if nothing is found.
+                # We don't need to make a second, direct request.
+                if not jobs:
+                    st.write(f"ℹ️ No jobs found on **{site}**.")
+                
                 out[site] = {"url": url, "jobs": jobs}
+                # ...
                 
                 duration = time.time() - start_time
                 st.write(f"✅ **{site}** completed in {duration:.2f} seconds.")
