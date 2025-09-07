@@ -168,16 +168,16 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     payload = {
-    "url": url, 
-    "formats": ["extract"], 
-    "extract": {"prompt": get_prompt(site_name)},
-    # ADD THIS BLOCK TO USE A UK PROXY
-    "crawlerOptions": {
-        "proxy": {
-            "country": "GB"
+        "url": url, 
+        "mode": "smart", # <-- ADD THIS LINE
+        "formats": ["extract"], 
+        "extract": {"prompt": get_prompt(site_name)},
+        "crawlerOptions": {
+            "proxy": {
+                "country": "GB"
+            }
         }
     }
-}
 
     for attempt in range(3):
         try:
