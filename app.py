@@ -43,8 +43,8 @@ def build_urls(job_title: str, location: str) -> dict:
     loc_dash = hyphenate(location)
 
     return {
-    #"Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}",
+    "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
+    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
@@ -95,7 +95,12 @@ Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "CWJobs": """
-Extract all job listings. For each job return: job_title, company_name, location, salary.
+Extract job titles, company names, job locations, and salary information from CWJobs.
+
+- Job title: <h2> or <a> inside job card
+- Company: element with class 'job-company'
+- Location: element with class 'job-location'
+- Salary: element with class 'job-salary' or similar.
 
 Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
@@ -166,13 +171,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
 
     for attempt in range(3):
         try:
-            st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=30)  # lower timeout for testing
-            st.write(f"[debug] status {r.status_code} for {site_name}")
-
-            # show first 500 chars of response
-            st.text(r.text[:500])
-
+            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
             r.raise_for_status()
             data = r.json()
             results = data.get("data", {}).get("extract", [])
@@ -181,13 +180,13 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             if not isinstance(results, list):
                 results = []
             return results[:10]
-
+        except requests.exceptions.ReadTimeout:
+            time.sleep(2)
+            if attempt == 2:
+                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
         except Exception as e:
-            st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
-
-
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
