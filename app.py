@@ -3,37 +3,24 @@ import re
 import json
 import requests
 import streamlit as st
-from urllib.parse import quote_plus
 import time
 
 # Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
-API_URL = "https://api.firecrawl.dev/v1/extract"
+API_URL = "https://api.firecrawl.dev/v1/extract"  # Correct endpoint
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
 st.markdown("""
 <style>
-/* Targets the anchor links specifically by their href attribute */
-a[href^="#"] {
-    display: none !important;
-}
-
-/* A more general rule for headers */
-h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
-    display: none !important;
-}
+a[href^="#"] { display: none !important; }
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 st.title("🌐 Multi Job Board Aggregator")
-
 st.caption("Enter a job title and a location. The app fetches top job listings from multiple job boards and displays them neatly for you.")
-
 
 # ----------------------------
 # URL Builders
-# ----------------------------
-# ----------------------------
-# URL Builders (Hays + Breakroom included)
 # ----------------------------
 def hyphenate(s: str) -> str:
     return re.sub(r"\s+", "-", s.strip().lower())
@@ -43,103 +30,28 @@ def build_urls(job_title: str, location: str) -> dict:
     loc_dash = hyphenate(location)
 
     return {
-    "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
-    #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
-    "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-    #"Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-    #"Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+        "Adzuna": f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
+        "CWJobs": f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+        "TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+        "Reed": f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
+        "Indeed": f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+        "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
+        "Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+        "Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
-
-
 
 # ----------------------------
 # Site-specific prompts
 # ----------------------------
 SITE_PROMPTS = {
-    "Reed": """
-Extract job titles, company names, job locations, and salary information from this Reed search results page.
-
-Each job listing is in an <article> element with class containing 'job-card_jobCard'.
-Within the <header> section of each job card:
-- Job title: <a> tag with data-element="job_title"
-- Company: <a> tag with data-element="recruiter"
-- Location: <li> element with data-qa="job-card-location"
-- Salary: element containing salary info (e.g., a <li> element with text like "£..." or a span with a salary class)
-
-Return JSON array of objects: job_title, company_name, location, salary
-Ignore any content outside <header> (including job descriptions or "Go to similar" links)
-""",
-"Indeed": """
-Extract job titles, company names, job locations, and salary information from this Indeed page.
-
-- Job title: The main job title link.
-- Company: The name of the employer.
-- Location: The geographic location of the job.
-- Salary: The text containing the salary for the job. Look for a string that includes a currency symbol (e.g., £, $, €), a number, or words like 'per annum', 'hourly', 'competitive', or 'negotiable'.
-
-Return JSON array of objects: job_title, company_name, location, salary
-Ignore ads, footers, or unrelated content.
-""",
-    "Adzuna": """
-Extract job titles, company names, job locations, and salary information from Adzuna job cards.
-
-- Job title: element with class 'job_title' or similar
-- Company: element with class 'company' or 'company_name'
-- Location: element with class 'location'
-- Salary: element with a class like 'salary' or similar.
-
-Return JSON array of objects: job_title, company_name, location, salary
-Ignore unrelated content
-""",
-    "CWJobs": """
-Extract job titles, company names, locations, and salaries from each job card on this CWJobs search results page. 
-Return a JSON array of objects with keys: job_title, company_name, location, salary.
-""",
-    "TotalJobs": """
-Extract job titles, company names, locations, and salaries from each job card on this TotalJobs search results page. 
-Return a JSON array of objects with keys: job_title, company_name, location, salary.
-""",
-    "Hays": """
-Extract job titles, company names, job locations, and salary from this Hays search results page.
-
-Each job listing is contained in an element with class containing 'job-card' or similar.
-Within each job card:
-- Extract the job title from the <a> tag or heading element with class containing 'job-title'.
-- Extract the company name from the element that contains the recruiter/employer name.
-- Extract the location from the element containing the location info.
-- Extract the salary from the element containing the salary info (often in a <span> or <p> tag).
-
-Return a JSON array of objects, one per job card, with fields: job_title, company_name, location, salary.
-Ignore ads, footers, similar jobs, or content outside the job cards.
-""",
-
-    "CVLibrary": """
-Extract job titles, company names, job locations, and salary from CVLibrary search results.
-
-- Job title: <h2> or <a> inside job card
-- Company: element with class 'job-company'
-- Location: element with class 'job-location'
-- Salary: element with class 'job-salary' or similar.
-
-Return JSON array of objects: job_title, company_name, location, salary
-Ignore unrelated content
-""",
-    "Breakroom":"""
-Extract job titles, company names, job locations, and salary from this Breakroom search results page.
-
-Each job listing is contained in a job card element.
-Within each job card:
-- Extract the job title from the main title element.
-- Extract the company name from the company element.
-- Extract the job location from the location element.
-- Extract the salary from the salary element (e.g., class containing 'salary' or similar).
-
-Return a JSON array of objects, one per job card, with fields: job_title, company_name, location, salary.
-Ignore ads, footers, similar jobs, or any content outside the job card container.
-""",
+    "Adzuna": "Extract job titles, company names, job locations, and salary data from Adzuna job cards. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "CWJobs": "Extract job titles, company names, locations, and salaries from each job card on this CWJobs search results page. Return a JSON array of objects with keys: job_title, company_name, location, salary.",
+    "TotalJobs": "Extract job titles, company names, locations, and salaries from each job card on this TotalJobs search results page. Return a JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Reed": "Extract job titles, company names, job locations, and salary information from Reed search results page. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Indeed": "Extract job titles, company names, job locations, and salary information from Indeed search results page. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "CVLibrary": "Extract job titles, company names, job locations, and salary from CVLibrary search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Hays": "Extract job titles, company names, job locations, and salary from Hays search results page. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Breakroom": "Extract job titles, company names, job locations, and salary from Breakroom search results page. Return JSON array of objects with keys: job_title, company_name, location, salary."
 }
 
 def get_prompt(site_name: str) -> str:
@@ -153,46 +65,50 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-
-    # Playground-style payload
+    
     payload = {
+        "extractSetupCompleted": True,
         "urls": [url],
-        "extractPrompt": get_prompt(site_name) or f"Extract job titles, company name, location, and salary data from each job card on the {site_name} search results page.",
+        "extractPrompt": get_prompt(site_name),
+        "extractSchema": {
+            "type": "object",
+            "properties": {
+                "job_cards": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "job_title": {"type": "string"},
+                            "company_name": {"type": "string"},
+                            "location": {"type": "string"},
+                            "salary": {"type": "string"}
+                        },
+                        "required": ["job_title", "company_name", "location"]
+                    }
+                }
+            },
+            "required": ["job_cards"]
+        },
         "formats": ["json"],
-        "options": {
-            "onlyMainContent": True,
-            "stealthMode": False,
-            "timeout": 30
-        }
+        "options": {"onlyMainContent": True}
     }
 
     for attempt in range(3):
         try:
-            st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
-            st.text(json.dumps(payload, indent=2))
-            
-            r = requests.post("https://api.firecrawl.dev/v1/extract", headers=headers, json=payload, timeout=60)
-            st.write(f"[debug] status {r.status_code} for {site_name}")
-            st.text(r.text[:1000])  # print first 1000 chars
-
+            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
             r.raise_for_status()
             data = r.json()
-
-            # Playground-style output is usually nested under 'data' -> 'results' -> first URL
-            results = []
-            urls_data = data.get("data", {}).get("results", [])
-            if urls_data:
-                results = urls_data[0].get("extracted", [])
-                if not isinstance(results, list):
-                    results = []
-
-            return results[:10]  # return first 10 jobs
-
+            results = data.get("data", {}).get("job_cards", [])
+            if not isinstance(results, list):
+                results = []
+            return results[:10]
+        except requests.exceptions.ReadTimeout:
+            time.sleep(2)
+            if attempt == 2:
+                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
         except Exception as e:
-            st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
-
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
@@ -226,7 +142,6 @@ def run_all(job_title: str, location: str) -> dict:
 
     return out
 
-
 # ----------------------------
 # UI
 # ----------------------------
@@ -240,31 +155,25 @@ if submitted:
     with st.spinner("Fetching the hottest jobs for you... 🔍"):
         data = run_all(job_title, location)
 
-    # Summary
     all_jobs = [j for p in data.values() for j in p.get("jobs", [])]
     st.metric("Total Jobs Found", len(all_jobs))
 
-    # Tabs
     tabs = st.tabs(list(data.keys()))
 
-    # Define site colors
     SITE_COLORS = {
         "Adzuna": "#279B37",
         "CWJobs": "#D17119",
         "TotalJobs": "#005F75",
-        "Hays": "#0F42BE",
-        "Indeed": "#003A9B",
         "Reed": "#FF00CD",
+        "Indeed": "#003A9B",
         "CVLibrary": "#014694",
+        "Hays": "#0F42BE",
         "Breakroom": "#F1666A"
     }
 
     for tab, (site, payload) in zip(tabs, data.items()):
         with tab:
-            # Use the site's color for the CTA button
             accent = SITE_COLORS.get(site, "#1a73e8")
-            
-            # Make the link a prominent button-like CTA
             st.markdown(
                 f"""
                 <a href="{payload["url"]}" target="_blank" style="
@@ -277,12 +186,9 @@ if submitted:
                     border-radius: 8px;
                     text-align: center;
                     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                    transition: all 0.2s ease-in-out;
                     margin-bottom: 20px;
                     font-size: 1.1em;
-                " onmouseover="this.style.backgroundColor='darken({accent}, 10%)'; this.style.boxShadow='0 6px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.backgroundColor='{accent}'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'">
-                    🔗 View on {site}
-                </a>
+                ">🔗 View on {site}</a>
                 """,
                 unsafe_allow_html=True
             )
@@ -297,35 +203,15 @@ if submitted:
                 st.info("😕 No job results found for your search.")
                 continue
 
-# Create two columns for the job cards
             col1, col2 = st.columns(2)
 
-            # Job cards with site-based color accents
             for i, j in enumerate(jobs):
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
+                salary = j.get("salary") or "N/A"
                 
-                # Get salary data
-                salary = j.get("salary")
-                
-                # Add validation for irrelevant salary data
-                irrelevant_keywords = []
-                
-                if salary:
-                    # Check if the salary contains a number, a currency symbol, or a 'k'
-                    has_relevant_info = any(c.isdigit() or c in "£$€" or "k" in salary.lower() for c in salary)
-                    
-                    # Check if the salary is just an irrelevant keyword
-                    is_irrelevant_keyword = any(keyword in salary.lower() for keyword in irrelevant_keywords)
-                    
-                    if not has_relevant_info or is_irrelevant_keyword:
-                        salary = "N/A"
-                else:
-                    salary = "N/A"
-                
-                accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
-
+                accent = SITE_COLORS.get(site, "#1f2937")
                 card_html = f"""
                 <div style="
                     padding:20px; 
@@ -337,23 +223,15 @@ if submitted:
                     transition: transform 0.2s;
                 " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                     <h4 style="margin:0; color:{accent}; font-weight:700;">{i + 1}. {title}</h4>
-                    <p style="margin:4px 0 0; color:#4b5563;">
-                        <span style="margin-right:6px;">🏢</span> Company: {company}
-                    </p>
-                    <p style="margin:2px 0 0; color:#6b7280;">
-                        <span style="margin-right:6px;">📍</span> Location: {location}
-                    </p>
-                    <p style="margin:2px 0 0; color:#4b5563;">
-                        <span style="margin-right:6px;">💰</span> Salary: {salary}
-                    </p>
+                    <p style="margin:4px 0 0; color:#4b5563;">🏢 Company: {company}</p>
+                    <p style="margin:2px 0 0; color:#6b7280;">📍 Location: {location}</p>
+                    <p style="margin:2px 0 0; color:#4b5563;">💰 Salary: {salary}</p>
                 </div>
                 """
                 
-                # Alternate between columns
                 if i % 2 == 0:
                     col1.markdown(card_html, unsafe_allow_html=True)
                 else:
                     col2.markdown(card_html, unsafe_allow_html=True)
-
 
     st.divider()
