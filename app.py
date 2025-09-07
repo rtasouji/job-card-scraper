@@ -97,7 +97,7 @@ Ignore unrelated content
     "CWJobs": """
 Extract job titles, company names, locations, and salaries from each job card on this CWJobs search results page. 
 Return a JSON array of objects with keys: job_title, company_name, location, salary.
-"""
+""",
     "TotalJobs": """
 Extract job titles, company names, locations, and salaries from each job card on this TotalJobs search results page. 
 Return a JSON array of objects with keys: job_title, company_name, location, salary.
