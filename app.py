@@ -8,7 +8,7 @@ import time
 
 # Firecrawl API key from Streamlit Secrets
 API_KEY = st.secrets.get("FIRECRAWL_API_KEY")
-API_URL = "https://api.firecrawl.dev/v0/scrape"
+API_URL = "https://api.firecrawl.dev/v1/scrape"
 
 st.set_page_config(page_title="Job Board Aggregator", layout="wide")
 st.markdown("""
@@ -167,17 +167,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "url": url, 
-        "mode": "smart", # <-- ADD THIS LINE
-        "formats": ["extract"], 
-        "extract": {"prompt": get_prompt(site_name)},
-        "crawlerOptions": {
-            "proxy": {
-                "country": "GB"
-            }
-        }
-    }
+    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
 
     for attempt in range(3):
         try:
