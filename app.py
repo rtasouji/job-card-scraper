@@ -45,12 +45,12 @@ def build_urls(job_title: str, location: str) -> dict:
     return {
     #"Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
     #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    "TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
     #"CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
     #"Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-    "Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+    #"Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
 
 
