@@ -304,7 +304,7 @@ if submitted:
                 salary = j.get("salary")
                 
                 # Add validation for irrelevant salary data
-                irrelevant_keywords = ["permanent", "contract", "full-time", "part-time", "temporary"]
+                irrelevant_keywords = ["permanent", "contract", "temporary"]
                 
                 if salary:
                     # Check if the salary contains a number, a currency symbol, or a 'k'
