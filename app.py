@@ -176,6 +176,9 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             "proxy": {
                 "country": "GB"
             }
+        },
+        "pageOptions": {
+            "waitFor": 5000 # Wait for 5000 milliseconds (5 seconds)
         }
     }
 
