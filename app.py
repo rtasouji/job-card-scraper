@@ -66,8 +66,10 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     payload = {
         "urls": [url],
-        "extractPrompt": get_prompt(site_name),
-        "formats": ["json"]
+        "prompt": get_prompt(site_name),  # Changed from "extractPrompt" to "prompt"
+        "scrapeOptions": {
+            "formats": ["json"]  # Moved formats inside scrapeOptions
+        }
     }
 
     for attempt in range(3):
@@ -88,7 +90,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         except Exception as e:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
-
+            time.sleep(2)  # Add delay between retries
 # ----------------------------
 # Run all sites
 # ----------------------------
