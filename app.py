@@ -72,16 +72,16 @@ Within the <header> section of each job card:
 Return JSON array of objects: job_title, company_name, location, salary
 Ignore any content outside <header> (including job descriptions or "Go to similar" links)
 """,
-    "Indeed": """
+"Indeed": """
 Extract job titles, company names, job locations, and salary information from this Indeed page.
 
-- Job title: element with class 'jobtitle' or <h2 class="title"><a ...></a></h2>
-- Company: class 'company' or 'companyName'
-- Location: class 'location' or 'companyLocation'
-- Salary: element with data-testid="salary-snippet-container", or class 'salary-snippet' or 'salaryText'.
+- Job title: The main job title link.
+- Company: The name of the employer.
+- Location: The geographic location of the job.
+- Salary: The text containing the salary for the job. Look for a string that includes a currency symbol (e.g., £, $, €), a number, or words like 'per annum', 'hourly', 'competitive', or 'negotiable'.
 
 Return JSON array of objects: job_title, company_name, location, salary
-Ignore ads, footers, or unrelated content
+Ignore ads, footers, or unrelated content.
 """,
     "Adzuna": """
 Extract job titles, company names, job locations, and salary information from Adzuna job cards.
@@ -304,7 +304,7 @@ if submitted:
                 salary = j.get("salary")
                 
                 # Add validation for irrelevant salary data
-                irrelevant_keywords = ["permanent", "contract", "full-time", "part-time", "temporary", "per annum"]
+                irrelevant_keywords = ["permanent", "contract", "full-time", "part-time", "temporary"]
                 
                 if salary:
                     # Check if the salary contains a number, a currency symbol, or a 'k'
