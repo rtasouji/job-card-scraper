@@ -162,7 +162,7 @@ def get_prompt(site_name: str) -> str:
 # ----------------------------
 # Firecrawl Scraping with retry
 # ----------------------------
-def scrape_jobs(url: str, site_name: str) -> list[dict]:
+def scrape_jobs(url: str, site_name: str, debug: bool = False) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
@@ -171,22 +171,47 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
 
     for attempt in range(3):
         try:
+            if debug:
+                st.write(f"[debug] Firecrawl request for {site_name}, attempt {attempt+1}")
             r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
-            r.raise_for_status()
-            data = r.json()
+            if debug:
+                st.write(f"[debug] Firecrawl status code {r.status_code}")
+
+            # Try to parse JSON safely, show raw text if JSON fails
+            try:
+                data = r.json()
+            except Exception:
+                if debug:
+                    with st.expander(f"Firecrawl non-JSON response, {site_name}"):
+                        st.text(r.text[:5000])
+                raise RuntimeError(f"Non-JSON response from Firecrawl, status {r.status_code}")
+
+            if debug:
+                with st.expander(f"Firecrawl raw response, {site_name}"):
+                    st.json(data)
+
+            # Look for common error messages
+            if r.status_code != 200:
+                msg = data.get("message") or data.get("error") or str(data)
+                raise RuntimeError(f"Firecrawl returned status {r.status_code}, message: {msg}")
+
             results = data.get("data", {}).get("extract", [])
             if isinstance(results, dict) and "extract" in results:
                 results = results["extract"]
             if not isinstance(results, list):
                 results = []
             return results[:10]
+
         except requests.exceptions.ReadTimeout:
-            time.sleep(2)
             if attempt == 2:
                 raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
+            time.sleep(2)
         except Exception as e:
             if attempt == 2:
+                # re-raise last attempt error, but include body info if available
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
+            time.sleep(1)
+
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
