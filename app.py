@@ -31,9 +31,7 @@ st.caption("Enter a job title and a location. The app fetches top job listings f
 
 # ----------------------------
 # URL Builders
-# ----------------------------
-# ----------------------------
-# URL Builders (Hays + Breakroom included)
+
 # ----------------------------
 def hyphenate(s: str) -> str:
     return re.sub(r"\s+", "-", s.strip().lower())
@@ -44,13 +42,13 @@ def build_urls(job_title: str, location: str) -> dict:
 
     return {
     "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+    "Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
-    #"CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-    #"Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-    #"Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+    "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
+    "Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+    "Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
 
 
@@ -211,12 +209,16 @@ def run_all(job_title: str, location: str) -> dict:
 # UI
 # ----------------------------
 with st.form("search"):
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([2, 2, 1])
     job_title = col1.text_input("Job title", "Data Analyst")
     location = col2.text_input("Location", "London")
+    force_refresh = col3.checkbox("Fresh data", help="Bypass cache for latest results")
     submitted = st.form_submit_button("Search")
 
 if submitted:
+    if force_refresh:
+        st.cache_data.clear()  # Clear cache when user wants fresh data
+    
     with st.spinner("Fetching the hottest jobs for you... 🔍"):
         data = run_all(job_title, location)
 
