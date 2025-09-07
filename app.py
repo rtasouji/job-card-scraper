@@ -152,49 +152,27 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
-    prompt_text = get_prompt(site_name)
-    if not prompt_text:
-        prompt_text = "Extract job titles, company name, location, and salary data from each job card on the search results page."
-
-    payload = {
-        "url": url,
-        "formats": ["extract"],
-        "extract": {
-            "type": "prompt",
-            "prompt": prompt_text
-        }
-    }
-
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-
-    st.write(f"[debug] payload for {site_name}:\n{json.dumps(payload, indent=2)}")
+    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
 
     for attempt in range(3):
         try:
-            st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-            st.write(f"[debug] status {r.status_code} for {site_name}")
-            st.text(r.text[:500])  # show first 500 chars for debug
-
+            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
             r.raise_for_status()
             data = r.json()
-
-            # Firecrawl stores extracted data under data.extract or data.extract.extract
             results = data.get("data", {}).get("extract", [])
             if isinstance(results, dict) and "extract" in results:
                 results = results["extract"]
-
             if not isinstance(results, list):
                 results = []
-
             return results[:10]
-
+        except requests.exceptions.ReadTimeout:
+            time.sleep(2)
+            if attempt == 2:
+                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
         except Exception as e:
-            st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
-
-
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
