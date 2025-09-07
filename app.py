@@ -30,13 +30,13 @@ def build_urls(job_title: str, location: str) -> dict:
     loc_dash = hyphenate(location)
     return {
         "Adzuna": f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-        "CWJobs": f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-        "TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-        "Indeed": f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
-        "Reed": f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
-        "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
-        "Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
-        "Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
+        #"CWJobs": f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+        #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+        #"Indeed": f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+        #"Reed": f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
+        #"CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
+        #"Hays": f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
+        #"Breakroom": f"https://www.breakroom.cc/en-gb/{job_dash}-jobs-in-{loc_dash}"
     }
 
 # ----------------------------
@@ -44,13 +44,13 @@ def build_urls(job_title: str, location: str) -> dict:
 # ----------------------------
 SITE_PROMPTS = {
     "Adzuna": "Extract job titles, company names, locations, and salaries from Adzuna job cards. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"CWJobs": "Extract job titles, company names, locations, and salaries from CWJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"TotalJobs": "Extract job titles, company names, locations, and salaries from TotalJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"Indeed": "Extract job titles, company names, locations, and salaries from Indeed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"Reed": "Extract job titles, company names, locations, and salaries from Reed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"CVLibrary": "Extract job titles, company names, locations, and salaries from CVLibrary search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"Hays": "Extract job titles, company names, locations, and salaries from Hays search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    #"Breakroom": "Extract job titles, company names, locations, and salaries from Breakroom search results. Return JSON array of objects with keys: job_title, company_name, location, salary."
+    "CWJobs": "Extract job titles, company names, locations, and salaries from CWJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "TotalJobs": "Extract job titles, company names, locations, and salaries from TotalJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Indeed": "Extract job titles, company names, locations, and salaries from Indeed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Reed": "Extract job titles, company names, locations, and salaries from Reed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "CVLibrary": "Extract job titles, company names, locations, and salaries from CVLibrary search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Hays": "Extract job titles, company names, locations, and salaries from Hays search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    "Breakroom": "Extract job titles, company names, locations, and salaries from Breakroom search results. Return JSON array of objects with keys: job_title, company_name, location, salary."
 }
 
 def get_prompt(site_name: str) -> str:
