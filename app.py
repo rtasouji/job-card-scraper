@@ -152,25 +152,45 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    # Playground-style payload
+    payload = {
+        "urls": [url],
+        "extractPrompt": f"Extract job titles, company name, location, and salary data from each job card on the search results page.",
+        "formats": ["json"],
+        "options": {
+            "onlyMainContent": True,
+            "scrapeContentFromSearchResults": True,
+            "timeout": 30
+        }
+    }
 
     for attempt in range(3):
         try:
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+            st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
+            r = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+            st.write(f"[debug] status {r.status_code} for {site_name}")
+            st.text(r.text[:500])
+
             r.raise_for_status()
             data = r.json()
+
+            # Playground returns JSON array under 'job_cards'
             results = data.get("data", {}).get("extract", [])
-            if isinstance(results, dict) and "extract" in results:
-                results = results["extract"]
+            if isinstance(results, dict) and "job_cards" in results:
+                results = results["job_cards"]
+
             if not isinstance(results, list):
                 results = []
+
             return results[:10]
-        except requests.exceptions.ReadTimeout:
-            time.sleep(2)
-            if attempt == 2:
-                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
+
         except Exception as e:
+            st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
 
