@@ -152,19 +152,16 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
     # Playground-style payload
     payload = {
         "urls": [url],
-        "extractPrompt": f"Extract job titles, company name, location, and salary data from each job card on the search results page.",
+        "extractPrompt": get_prompt(site_name) or f"Extract job titles, company name, location, and salary data from each job card on the {site_name} search results page.",
         "formats": ["json"],
         "options": {
             "onlyMainContent": True,
-            "scrapeContentFromSearchResults": True,
+            "stealthMode": False,
             "timeout": 30
         }
     }
@@ -172,27 +169,30 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
     for attempt in range(3):
         try:
             st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+            st.text(json.dumps(payload, indent=2))
+            
+            r = requests.post("https://api.firecrawl.dev/v1/extract", headers=headers, json=payload, timeout=60)
             st.write(f"[debug] status {r.status_code} for {site_name}")
-            st.text(r.text[:500])
+            st.text(r.text[:1000])  # print first 1000 chars
 
             r.raise_for_status()
             data = r.json()
 
-            # Playground returns JSON array under 'job_cards'
-            results = data.get("data", {}).get("extract", [])
-            if isinstance(results, dict) and "job_cards" in results:
-                results = results["job_cards"]
+            # Playground-style output is usually nested under 'data' -> 'results' -> first URL
+            results = []
+            urls_data = data.get("data", {}).get("results", [])
+            if urls_data:
+                results = urls_data[0].get("extracted", [])
+                if not isinstance(results, list):
+                    results = []
 
-            if not isinstance(results, list):
-                results = []
-
-            return results[:10]
+            return results[:10]  # return first 10 jobs
 
         except Exception as e:
             st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
+
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
