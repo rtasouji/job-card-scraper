@@ -44,13 +44,13 @@ def build_urls(job_title: str, location: str) -> dict:
 # ----------------------------
 SITE_PROMPTS = {
     "Adzuna": "Extract job titles, company names, locations, and salaries from Adzuna job cards. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "CWJobs": "Extract job titles, company names, locations, and salaries from CWJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "TotalJobs": "Extract job titles, company names, locations, and salaries from TotalJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "Indeed": "Extract job titles, company names, locations, and salaries from Indeed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "Reed": "Extract job titles, company names, locations, and salaries from Reed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "CVLibrary": "Extract job titles, company names, locations, and salaries from CVLibrary search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "Hays": "Extract job titles, company names, locations, and salaries from Hays search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
-    "Breakroom": "Extract job titles, company names, locations, and salaries from Breakroom search results. Return JSON array of objects with keys: job_title, company_name, location, salary."
+    #"CWJobs": "Extract job titles, company names, locations, and salaries from CWJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    #"TotalJobs": "Extract job titles, company names, locations, and salaries from TotalJobs search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    #"Indeed": "Extract job titles, company names, locations, and salaries from Indeed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    #"Reed": "Extract job titles, company names, locations, and salaries from Reed search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    #"CVLibrary": "Extract job titles, company names, locations, and salaries from CVLibrary search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    #"Hays": "Extract job titles, company names, locations, and salaries from Hays search results. Return JSON array of objects with keys: job_title, company_name, location, salary.",
+    #"Breakroom": "Extract job titles, company names, locations, and salaries from Breakroom search results. Return JSON array of objects with keys: job_title, company_name, location, salary."
 }
 
 def get_prompt(site_name: str) -> str:
@@ -59,30 +59,71 @@ def get_prompt(site_name: str) -> str:
 # ----------------------------
 # Firecrawl Scraping with retry
 # ----------------------------
+# Alternative approach - try this if the debug version shows API errors
+
+# Update the API_URL at the top of your file:
+# API_URL = "https://api.firecrawl.dev/v1/scrape"
+
 def scrape_jobs(url: str, site_name: str) -> list[dict]:
     if not API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    
+    # Using the /scrape endpoint with extract format
     payload = {
-        "urls": [url],
-        "prompt": get_prompt(site_name),  # Changed from "extractPrompt" to "prompt"
-        "scrapeOptions": {
-            "formats": ["json"]  # Moved formats inside scrapeOptions
+        "url": url,  # Single URL, not array
+        "formats": ["extract"],
+        "extract": {
+            "prompt": get_prompt(site_name)
         }
     }
 
+    print(f"DEBUG: Using /scrape endpoint with payload: {json.dumps(payload, indent=2)}")
+
     for attempt in range(3):
         try:
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+            scrape_url = "https://api.firecrawl.dev/v1/scrape"
+            r = requests.post(scrape_url, headers=headers, json=payload, timeout=120)
+            
+            print(f"DEBUG: Response status: {r.status_code}")
+            print(f"DEBUG: Response content: {r.text[:500]}...")
+            
             r.raise_for_status()
             data = r.json()
-            results = data.get("data", {}).get("extract", [])
-            if isinstance(results, dict) and "extract" in results:
-                results = results["extract"]
+            
+            # For /scrape endpoint, the extracted data is in data.extract
+            extract_data = data.get("data", {}).get("extract", [])
+            
+            # Handle different possible response formats
+            if isinstance(extract_data, dict):
+                # If it's a dict, try to find the actual list
+                if "jobs" in extract_data:
+                    results = extract_data["jobs"]
+                elif "results" in extract_data:
+                    results = extract_data["results"]
+                else:
+                    # Convert dict to list format we expect
+                    results = [extract_data]
+            else:
+                results = extract_data
+            
             if not isinstance(results, list):
                 results = []
+                
             return results[:10]
+            
+        except requests.exceptions.HTTPError as e:
+            try:
+                error_data = r.json()
+                print(f"DEBUG: Error response: {json.dumps(error_data, indent=2)}")
+            except:
+                print(f"DEBUG: Raw error response: {r.text}")
+            
+            if attempt == 2:
+                raise RuntimeError(f"HTTP Error for {site_name}: {e}")
+            time.sleep(2)
+            
         except requests.exceptions.ReadTimeout:
             time.sleep(2)
             if attempt == 2:
@@ -90,7 +131,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         except Exception as e:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
-            time.sleep(2)  # Add delay between retries
+            time.sleep(2)
 # ----------------------------
 # Run all sites
 # ----------------------------
