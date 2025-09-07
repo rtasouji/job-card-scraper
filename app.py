@@ -44,7 +44,7 @@ def build_urls(job_title: str, location: str) -> dict:
 
     return {
     "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
@@ -95,26 +95,12 @@ Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "CWJobs": """
-Extract job titles, company names, job locations, and salary information from CWJobs.
-
-- Job title: <h2> or <a> inside job card
-- Company: element with class 'job-company'
-- Location: element with class 'job-location'
-- Salary: element with class 'job-salary' or similar.
-
-Return JSON array of objects: job_title, company_name, location, salary
-Ignore unrelated content
-""",
+Extract job titles, company names, locations, and salaries from each job card on this CWJobs search results page. 
+Return a JSON array of objects with keys: job_title, company_name, location, salary.
+"""
     "TotalJobs": """
-Extract job titles, company names, job locations, and salary information from TotalJobs.
-
-- Job title: element with class 'job-title'
-- Company: element with class 'job-company'
-- Location: element with class 'job-location'
-- Salary: element with class 'job-salary' or similar.
-
-Return JSON array of objects: job_title, company_name, location, salary
-Ignore unrelated content
+Extract job titles, company names, locations, and salaries from each job card on this TotalJobs search results page. 
+Return a JSON array of objects with keys: job_title, company_name, location, salary.
 """,
     "Hays": """
 Extract job titles, company names, job locations, and salary from this Hays search results page.
