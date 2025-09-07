@@ -60,93 +60,100 @@ def build_urls(job_title: str, location: str) -> dict:
 # ----------------------------
 SITE_PROMPTS = {
     "Reed": """
-Extract job titles, company names, and job locations from this Reed search results page.
+Extract job titles, company names, job locations, and salary information from this Reed search results page.
 
 Each job listing is in an <article> element with class containing 'job-card_jobCard'.
 Within the <header> section of each job card:
 - Job title: <a> tag with data-element="job_title"
 - Company: <a> tag with data-element="recruiter"
 - Location: <li> element with data-qa="job-card-location"
+- Salary: element containing salary info (e.g., a <li> element with text like "£..." or a span with a salary class)
 
-Return JSON array of objects: job_title, company_name, location
+Return JSON array of objects: job_title, company_name, location, salary
 Ignore any content outside <header> (including job descriptions or "Go to similar" links)
 """,
     "Indeed": """
-Extract job titles, company names, and job locations from this Indeed page.
+Extract job titles, company names, job locations, and salary information from this Indeed page.
 
 - Job title: element with class 'jobtitle' or <h2 class="title"><a ...></a></h2>
 - Company: class 'company' or 'companyName'
 - Location: class 'location' or 'companyLocation'
+- Salary: element with class 'salary-snippet', 'salaryText', or similar.
 
-Return JSON array of objects: job_title, company_name, location
+Return JSON array of objects: job_title, company_name, location, salary
 Ignore ads, footers, or unrelated content
 """,
     "Adzuna": """
-Extract job titles, company names, and job locations from Adzuna job cards.
+Extract job titles, company names, job locations, and salary information from Adzuna job cards.
 
 - Job title: element with class 'job_title' or similar
 - Company: element with class 'company' or 'company_name'
 - Location: element with class 'location'
+- Salary: element with a class like 'salary' or similar.
 
-Return JSON array of objects: job_title, company_name, location
+Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "CWJobs": """
-Extract job titles, company names, and job locations from CWJobs.
+Extract job titles, company names, job locations, and salary information from CWJobs.
 
 - Job title: <h2> or <a> inside job card
 - Company: element with class 'job-company'
 - Location: element with class 'job-location'
+- Salary: element with class 'job-salary' or similar.
 
-Return JSON array of objects: job_title, company_name, location
+Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "TotalJobs": """
-Extract job titles, company names, and job locations from TotalJobs.
+Extract job titles, company names, job locations, and salary information from TotalJobs.
 
 - Job title: element with class 'job-title'
 - Company: element with class 'job-company'
 - Location: element with class 'job-location'
+- Salary: element with class 'job-salary' or similar.
 
-Return JSON array of objects: job_title, company_name, location
+Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "Hays": """
-Extract job titles, company names, and job locations from this Hays search results page.
+Extract job titles, company names, job locations, and salary from this Hays search results page.
 
 Each job listing is contained in an element with class containing 'job-card' or similar.
 Within each job card:
 - Extract the job title from the <a> tag or heading element with class containing 'job-title'.
-- Extract the company name from the element that contains the recruiter/employer name (often in a <span> or <p> tag inside the job card).
+- Extract the company name from the element that contains the recruiter/employer name.
 - Extract the location from the element containing the location info.
+- Extract the salary from the element containing the salary info (often in a <span> or <p> tag).
 
-Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location, salary.
 Ignore ads, footers, similar jobs, or content outside the job cards.
 """,
 
     "CVLibrary": """
-Extract job titles, company names, and job locations from CVLibrary search results.
+Extract job titles, company names, job locations, and salary from CVLibrary search results.
 
 - Job title: <h2> or <a> inside job card
 - Company: element with class 'job-company'
 - Location: element with class 'job-location'
+- Salary: element with class 'job-salary' or similar.
 
-Return JSON array of objects: job_title, company_name, location
+Return JSON array of objects: job_title, company_name, location, salary
 Ignore unrelated content
 """,
     "Breakroom":"""
-Extract job titles, company names, and job locations from this Breakroom search results page.
+Extract job titles, company names, job locations, and salary from this Breakroom search results page.
 
-Each job listing is contained in a job card element (for example, class containing 'job-card' or similar).  
+Each job listing is contained in a job card element.
 Within each job card:
-- Extract the job title from the main title element (e.g., <h2> or <a> with class containing 'job-title'). Keep the full text exactly as it appears.  
-- Extract the company name from the company element (e.g., <p>, <span>, or <div> with class containing 'company' or similar).  
-- Extract the job location from the location element (e.g., class containing 'location' or similar).
+- Extract the job title from the main title element.
+- Extract the company name from the company element.
+- Extract the job location from the location element.
+- Extract the salary from the salary element (e.g., class containing 'salary' or similar).
 
-Return a JSON array of objects, one per job card, with fields: job_title, company_name, location.  
+Return a JSON array of objects, one per job card, with fields: job_title, company_name, location, salary.
 Ignore ads, footers, similar jobs, or any content outside the job card container.
-
-    """,
+""",
 }
 
 def get_prompt(site_name: str) -> str:
@@ -278,6 +285,8 @@ if submitted:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
+                # NEW: Get salary data, defaulting if not found
+                salary = j.get("salary") or "Not specified"
                 
                 accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
 
@@ -297,6 +306,9 @@ if submitted:
                     </p>
                     <p style="margin:2px 0 0; color:#6b7280;">
                         <span style="margin-right:6px;">📍</span> Location: {location}
+                    </p>
+                    <p style="margin:2px 0 0; color:#4b5563;">
+                        <span style="margin-right:6px;">💰</span> Salary: {salary}
                     </p>
                 </div>
                 """
