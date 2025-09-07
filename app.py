@@ -44,7 +44,7 @@ def build_urls(job_title: str, location: str) -> dict:
 
     return {
     "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
     #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
@@ -153,26 +153,52 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
+
+    # Use playground-style prompt extraction
+    payload = {
+        "url": url,
+        "formats": ["extract"],
+        "extract": {
+            "type": "prompt",
+            "prompt": get_prompt(site_name) or "Extract job titles, company name, location, and salary data from each job card on the search results page."
+        }
+    }
 
     for attempt in range(3):
         try:
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+            st.write(f"[debug] sending to Firecrawl: {site_name}, attempt {attempt+1}")
+            r = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+            st.write(f"[debug] status {r.status_code} for {site_name}")
+            st.text(r.text[:500])
+
             r.raise_for_status()
             data = r.json()
-            results = data.get("data", {}).get("extract", [])
-            if isinstance(results, dict) and "extract" in results:
-                results = results["extract"]
+
+            # Parse extract correctly
+            extract_data = data.get("data", {}).get("extract")
+            results = []
+
+            if isinstance(extract_data, dict):
+                # If playground-style, it may contain 'job_cards'
+                if "job_cards" in extract_data:
+                    results = extract_data["job_cards"]
+                else:
+                    # fallback: flatten any other dict values
+                    results = list(extract_data.values())
+            elif isinstance(extract_data, list):
+                results = extract_data
+
+            # Ensure it's a list
             if not isinstance(results, list):
                 results = []
+
             return results[:10]
-        except requests.exceptions.ReadTimeout:
-            time.sleep(2)
-            if attempt == 2:
-                raise RuntimeError(f"ReadTimeout for {site_name} ({url})")
+
         except Exception as e:
+            st.error(f"[debug] {site_name} attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
+
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
