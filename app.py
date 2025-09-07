@@ -44,9 +44,9 @@ def build_urls(job_title: str, location: str) -> dict:
 
     return {
     "Adzuna":  f"https://www.adzuna.co.uk/jobs/search?q={job_title}&w={location}",
-    "CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    "TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
-    #"Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
+    #"CWJobs":  f"https://www.cwjobs.co.uk/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    #"TotalJobs": f"https://www.totaljobs.com/jobs/{job_dash}/in-{loc_dash}?radius=10&searchOrigin=Resultlist_top-search",
+    "Indeed":  f"https://uk.indeed.com/jobs?q={job_title}&l={location}",
     #"Reed":  f"https://www.reed.co.uk/jobs/{job_dash}-jobs-in-{loc_dash}",
     "CVLibrary": f"https://www.cv-library.co.uk/{job_dash}-jobs-in-{loc_dash}",
     #"Hays":  f"https://www.hays.co.uk/job-search/{job_dash}-jobs-in-{loc_dash}-uk",
@@ -192,18 +192,32 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
 def run_all(job_title: str, location: str) -> dict:
     urls = build_urls(job_title, location)
     out = {}
-    for site, url in urls.items():
-        try:
-            jobs = scrape_jobs(url, site)
 
-            # Check page text for "no results" messages (optional: use requests.get() to fetch page content)
-            r = requests.get(url)
-            if "Sorry, no results were found" in r.text:
-                jobs = []  # override with empty if no results
+    with st.status("Fetching job data...", expanded=True) as status_container:
+        for site, url in urls.items():
+            start_time = time.time()
+            st.write(f"🌐 Starting scrape for **{site}**...")
+            
+            try:
+                jobs = scrape_jobs(url, site)
 
-            out[site] = {"url": url, "jobs": jobs}
-        except Exception as e:
-            out[site] = {"url": url, "jobs": [], "error": str(e)}
+                # Check page text for "no results" messages
+                r = requests.get(url)
+                if "Sorry, no results were found" in r.text:
+                    jobs = []
+
+                out[site] = {"url": url, "jobs": jobs}
+                
+                duration = time.time() - start_time
+                st.write(f"✅ **{site}** completed in {duration:.2f} seconds.")
+
+            except Exception as e:
+                out[site] = {"url": url, "jobs": [], "error": str(e)}
+                duration = time.time() - start_time
+                st.error(f"❌ Failed to scrape **{site}** after {duration:.2f} seconds: {e}")
+        
+        status_container.update(label="All scraping tasks completed!", state="complete", expanded=False)
+
     return out
 
 
@@ -277,7 +291,7 @@ if submitted:
                 st.info("😕 No job results found for your search.")
                 continue
 
-# Create two columns for the job cards
+            # Create two columns for the job cards
             col1, col2 = st.columns(2)
 
             # Job cards with site-based color accents
@@ -285,24 +299,8 @@ if submitted:
                 title = j.get("job_title") or "Unknown title"
                 company = j.get("company_name") or "Unknown company"
                 location = j.get("location") or "Unknown location"
-                
-                # Get salary data
-                salary = j.get("salary")
-                
-                # Add validation for irrelevant salary data
-                irrelevant_keywords = ["permanent", "contract", "full-time", "part-time", "temporary", "per annum"]
-                
-                if salary:
-                    # Check if the salary contains a number, a currency symbol, or a 'k'
-                    has_relevant_info = any(c.isdigit() or c in "£$€" or "k" in salary.lower() for c in salary)
-                    
-                    # Check if the salary is just an irrelevant keyword
-                    is_irrelevant_keyword = any(keyword in salary.lower() for keyword in irrelevant_keywords)
-                    
-                    if not has_relevant_info or is_irrelevant_keyword:
-                        salary = "N/A"
-                else:
-                    salary = "N/A"
+                # NEW: Get salary data, defaulting if not found
+                salary = j.get("salary") or "Not specified"
                 
                 accent = SITE_COLORS.get(site, "#1f2937")  # default dark gray
 
