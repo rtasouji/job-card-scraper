@@ -65,12 +65,12 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    
+
     payload = {
-        "extractSetupCompleted": True,
         "urls": [url],
+        "extractSetupCompleted": True,
         "extractPrompt": get_prompt(site_name),
-        "extractSchema": {
+        "extractSchema": json.dumps({
             "type": "object",
             "properties": {
                 "job_cards": {
@@ -88,17 +88,16 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
                 }
             },
             "required": ["job_cards"]
-        },
-        "formats": ["json"],
-        "options": {"onlyMainContent": True}
+        }),
+        "formats": ["json"]
     }
 
     for attempt in range(3):
         try:
-            r = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+            r = requests.post("https://api.firecrawl.dev/v1/extract", headers=headers, json=payload, timeout=120)
             r.raise_for_status()
             data = r.json()
-            results = data.get("data", {}).get("job_cards", [])
+            results = data.get("data", {}).get("extract", {}).get("job_cards", [])
             if not isinstance(results, list):
                 results = []
             return results[:10]
@@ -109,6 +108,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         except Exception as e:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
+
 
 @st.cache_data(show_spinner=False, ttl=600)
 def run_all(job_title: str, location: str) -> dict:
