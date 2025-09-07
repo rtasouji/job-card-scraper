@@ -89,7 +89,8 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             },
             "required": ["job_cards"]
         }),
-        "formats": ["json"]
+        "formats": ["json"],
+        "sources": ["web"]
     }
 
     for attempt in range(3):
@@ -97,6 +98,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
             r = requests.post("https://api.firecrawl.dev/v1/extract", headers=headers, json=payload, timeout=120)
             r.raise_for_status()
             data = r.json()
+            # Firecrawl extract results are inside 'data' -> 'extract' -> 'job_cards'
             results = data.get("data", {}).get("extract", {}).get("job_cards", [])
             if not isinstance(results, list):
                 results = []
@@ -108,6 +110,7 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         except Exception as e:
             if attempt == 2:
                 raise RuntimeError(f"Failed to scrape {site_name}: {e}")
+
 
 
 @st.cache_data(show_spinner=False, ttl=600)
