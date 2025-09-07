@@ -153,7 +153,12 @@ def scrape_jobs(url: str, site_name: str) -> list[dict]:
         raise RuntimeError("FIRECRAWL_API_KEY is not set in Streamlit Secrets")
 
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    payload = {"url": url, "formats": ["extract"], "extract": {"prompt": get_prompt(site_name)}}
+    payload = {
+    "url": url,
+    "formats": ["extract"],
+    "extract": {"prompt": get_prompt(site_name)},
+    "render": True
+}
 
     for attempt in range(3):
         try:
